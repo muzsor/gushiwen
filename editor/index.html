@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>古詩文編輯器</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>古詩文編輯器</h1>
+    <span class="bar-note">只在這台電腦上使用・儲存後推上 GitHub 才會更新網站</span>
+    <div class="bar-actions">
+      <button type="button" id="newBtn" class="btn primary" data-tip-pos="below" data-tip="清空表單，開始新增一篇作品">＋ 新增作品</button>
+      <button type="button" id="importBtn" class="btn" data-tip-pos="below" data-tip="貼上用文字寫好的稿件，自動填入表單">匯入稿件</button>
+      <a class="btn" href="/site/" target="_blank" rel="noopener" data-tip-pos="below-left" data-tip="在新分頁打開網站，查看目前的內容">開啟網站</a>
+      <button type="button" id="helpBtn" class="btn" data-tip-pos="below-left" data-tip="每個按鈕和欄位的用法">？ 使用說明</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="side">
+      <input type="search" id="listSearch" class="input" placeholder="搜尋作品、作者…" autocomplete="off">
+      <div class="side-tools">
+        <button type="button" class="btn small" id="orderBtn" data-tip-pos="below" data-tip="進入排序模式，調整同一朝代內作品的先後">↕ 調整順序</button>
+        <span class="order-tools" id="orderTools" hidden>
+          <button type="button" class="btn small" id="orderCancel" data-tip-pos="below" data-tip="放棄這次的順序調整">取消</button>
+          <button type="button" class="btn small primary" id="orderSave" data-tip-pos="below-left" data-tip="把新的順序寫回資料（會先備份）">儲存順序</button>
+        </span>
+      </div>
+      <p class="hint" id="orderHint" hidden>拖曳 ⠿ 或按 ↑↓ 調整同一朝代內的先後。閱讀器的目錄與上一篇／下一篇都照這個順序。</p>
+      <nav id="list" class="list" aria-label="作品清單"></nav>
+    </aside>
+
+    <main class="main">
+      <form id="form" autocomplete="off" novalidate>
+        <section class="card">
+          <h2 id="formTitle">新增作品</h2>
+          <div class="grid">
+            <label>標題<input id="f-title" class="input" placeholder="例如：陋室銘；詞寫成「詞牌・題目」"></label>
+            <label>代號<input id="f-id" class="input" placeholder="網址用，小寫英文、數字與 -，例如 loushiming"></label>
+            <label>類型
+              <select id="f-type" class="input">
+                <option value="verse">詩詞</option>
+                <option value="prose">散文</option>
+              </select>
+            </label>
+            <label>體裁<select id="f-form" class="input"></select></label>
+            <label>主題<input id="f-tags" class="input" placeholder="2–3 個，用頓號分隔，例如：品德、隱逸"></label>
+            <label>出處（選填）<input id="f-source" class="input" placeholder="例如：《劉賓客文集》"></label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>作者</h2>
+          <div class="grid">
+            <label>選擇作者<select id="a-select" class="input"></select></label>
+            <label>作者代號<input id="a-id" class="input" placeholder="名字的拼音，小寫英文與數字，例如 liuyuxi"></label>
+            <label>名稱<input id="a-name" class="input" placeholder="例如：劉禹錫；書寫成《禮記》"></label>
+            <label>朝代<select id="a-dynasty" class="input"></select></label>
+            <label>生卒年<input id="a-years" class="input" placeholder="例如：772–842；不詳寫「生卒年不詳」"></label>
+            <label class="check"><input type="checkbox" id="a-source"> 這是一部書（例如《禮記》《詩經》，閱讀頁顯示「出處」而不是「作者」）</label>
+          </div>
+          <label class="block-label">作者介紹（空一行分段）<textarea id="a-intro" class="input" rows="4"></textarea></label>
+          <p class="hint" id="a-hint"></p>
+        </section>
+
+        <section class="card">
+          <h2>小序 <label class="check inline"><input type="checkbox" id="p-has"> 有小序</label></h2>
+          <div class="pair-grid" id="p-fields" hidden>
+            <textarea id="p-src" class="input" rows="2" placeholder="小序原文"></textarea>
+            <textarea id="p-tr" class="input" rows="2" placeholder="小序語譯"></textarea>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>原文與語譯</h2>
+          <p class="hint">每一列是「一句原文、一句語譯」。詩詞在原文欄按 Enter 可分行（例如律詩一聯寫兩行）；散文一列一句。每一張卡片是一段（散文）或一章、一片（詩詞）。</p>
+          <div id="blocks"></div>
+          <div class="row-actions">
+            <button type="button" class="btn" id="addBlock" data-tip="在最後加一段（散文的新段落，或詩詞的新一章、新一片）">＋ 新增一段</button>
+            <button type="button" class="btn" id="pasteBtn" data-tip="貼上整篇原文和整篇語譯，自動切句配對（會取代目前的內容）">快速貼上整篇…</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>註釋</h2>
+          <p class="hint">「詞」要和原文一字不差。同一個詞出現好幾次、或是「之」「其」這類常見字，請在「前後文」填一段包含它的原文片段（全文中只出現一次）。</p>
+          <div class="notes-head"><span>詞</span><span>前後文（選填）</span><span>解釋</span><span></span></div>
+          <div id="notes"></div>
+          <button type="button" class="btn" id="addNote" data-tip="在最後加一則註釋">＋ 新增註釋</button>
+        </section>
+
+        <section class="card">
+          <h2>創作背景</h2>
+          <textarea id="f-background" class="input" rows="5" placeholder="空一行分段"></textarea>
+        </section>
+
+        <section class="card">
+          <h2>賞析</h2>
+          <textarea id="f-analysis" class="input" rows="8" placeholder="3–5 段，空一行分段"></textarea>
+        </section>
+      </form>
+    </main>
+  </div>
+
+  <footer class="dock">
+    <div id="report" class="report" aria-live="polite"></div>
+    <div class="dock-actions">
+      <button type="button" class="btn danger" id="deleteBtn" hidden data-tip="從資料中刪除這篇作品（會先確認並備份）">刪除作品</button>
+      <button type="button" class="btn" id="exportBtn" hidden data-tip="把這篇匯出成文字稿件，可以複製或下載保存">匯出稿件</button>
+      <button type="button" class="btn" id="previewBtn" hidden data-tip="在新分頁打開網站中的這一篇（看的是已儲存的內容）">預覽</button>
+      <button type="button" class="btn" id="checkBtn" data-tip-pos="above-left" data-tip="只檢查，不儲存：列出錯誤與提醒">檢查</button>
+      <button type="button" class="btn primary" id="saveBtn" data-tip-pos="above-left" data-tip="檢查沒有錯誤後寫入資料（會先備份）">儲存</button>
+    </div>
+  </footer>
+
+  <dialog id="dlg">
+    <form method="dialog" class="dlg-body">
+      <h2 id="dlgTitle"></h2>
+      <p class="hint" id="dlgHint"></p>
+      <div id="dlgContent"></div>
+      <div class="dlg-actions" id="dlgActions"></div>
+    </form>
+  </dialog>
+
+
+  <dialog id="helpDlg" class="help">
+    <form method="dialog" class="dlg-body">
+      <h2>使用說明</h2>
+      <div class="help-body">
+        <h3>基本流程</h3>
+        <ol>
+          <li>按左邊清單的作品來修改，或按右上角「＋ 新增作品」。</li>
+          <li>填寫表單。原文與語譯可以一句一句輸入，也可以用「快速貼上整篇」。</li>
+          <li>按右下角「檢查」看有沒有錯誤，沒問題就按「儲存」。</li>
+          <li>按「預覽」到網站確認效果。</li>
+          <li>要發布到網站時：把 <code>public/sw.js</code> 第一行的版本號往上加，再推上 GitHub。</li>
+        </ol>
+        <p class="note">編輯器只在這台電腦上運作，別人無法使用。每次儲存、刪除或調整順序前，原本的資料都會備份到專案的 <code>.backup/</code> 資料夾。</p>
+
+        <h3>上方按鈕</h3>
+        <dl>
+          <dt>＋ 新增作品</dt><dd>清空表單，開始新增一篇。</dd>
+          <dt>匯入稿件</dt><dd>貼上用文字寫好的稿件（格式見 <code>templates/作品稿件範本.txt</code>），自動填入表單；確認後再按「儲存」。</dd>
+          <dt>開啟網站</dt><dd>在新分頁打開網站，看到的是已儲存的內容。</dd>
+        </dl>
+
+        <h3>左邊：作品清單</h3>
+        <dl>
+          <dt>搜尋框</dt><dd>輸入標題、作者或代號篩選清單。</dd>
+          <dt>點作品</dt><dd>載入到右邊表單修改。目前編輯中的作品會以紅色標示。</dd>
+          <dt>↕ 調整順序</dt><dd>進入排序模式：拖曳作品左邊的 ⠿，或按 ↑ ↓ 移動一格。只能在同一朝代內移動（網站一律先依朝代排列）。調好按「儲存順序」，不要的話按「取消」。網站的目錄和「上一篇／下一篇」都照這個順序。</dd>
+        </dl>
+
+        <h3>基本資料</h3>
+        <dl>
+          <dt>標題</dt><dd>詞、曲寫成「詞牌・題目」，例如「念奴嬌・赤壁懷古」，網站會分兩行顯示。</dd>
+          <dt>代號</dt><dd>網址用的英文，例如 <code>loushiming</code>。只能用小寫英文、數字和 -，不能和其他作品重複。建議用標題的拼音。</dd>
+          <dt>類型</dt><dd>「詩詞」或「散文」，決定網站上的排版（散文每段空兩字）。</dd>
+          <dt>體裁、主題、出處</dt><dd>主題 2–3 個，用頓號分隔；出處可以不填。</dd>
+        </dl>
+
+        <h3>作者</h3>
+        <dl>
+          <dt>選擇作者</dt><dd>已收錄的作者直接從選單挑選。選「＋ 新增作者…」可以新增。</dd>
+          <dt>作者代號</dt><dd>名字的拼音，例如 <code>liuyuxi</code>。新增時填寫，建立後就不能改。</dd>
+          <dt>修改作者資料</dt><dd>名稱、朝代、生卒年、介紹都能改，但會套用到這位作者的所有作品。</dd>
+          <dt>這是一部書</dt><dd>例如《禮記》《詩經》這類沒有單一作者的作品，打勾後網站會顯示「出處」。</dd>
+        </dl>
+
+        <h3>小序</h3>
+        <p>詞或詩前面的小序。打勾「有小序」後填寫原文與語譯。</p>
+
+        <h3>原文與語譯</h3>
+        <dl>
+          <dt>每一列</dt><dd>左邊原文、右邊語譯，一列一句。幾句原文共用一句語譯時，把它們寫在同一列。詩詞在原文欄按 Enter 可以分行，例如律詩一聯寫成兩行。</dd>
+          <dt>每一張卡片</dt><dd>一段：散文的自然段，或詩詞的一章、一片。網站上段與段之間會空開。</dd>
+          <dt>↑ ↓</dt><dd>把這一句往上或往下移。</dd>
+          <dt>＋</dt><dd>在這一句下面插入一個空白句。</dd>
+          <dt>✕</dt><dd>刪除這一句。</dd>
+          <dt>卡片右上「↑ 上移」「↓ 下移」「✕ 刪除段落」</dt><dd>移動或刪除整段。</dd>
+          <dt>＋ 新增一句</dt><dd>在這一段的最後加一句。</dd>
+          <dt>＋ 新增一段</dt><dd>在全文最後加一段。</dd>
+          <dt>快速貼上整篇…</dt><dd>把整篇原文、整篇語譯分別貼進兩個框，會依句號、問號、驚嘆號自動切句並配對；空一行代表換段。視窗會顯示兩邊的句數，套用後再到表格裡微調。注意：會取代目前的原文與語譯。</dd>
+        </dl>
+
+        <h3>註釋</h3>
+        <dl>
+          <dt>詞</dt><dd>要註解的詞，必須和原文一字不差。</dd>
+          <dt>前後文（選填）</dt><dd>同一個詞在原文出現好幾次時，網站預設把底線標在第一次出現的地方。要標在別處，就在這裡填一小段包含它的原文，例如註「之」時填「師者，所以傳道」。這段文字在全文中只能出現一次。</dd>
+          <dt>狀態標籤</dt><dd>
+            <span class="tag ok">找到</span> 會在原文標底線；
+            <span class="tag warn">只在題目</span> 會標在標題上；
+            <span class="tag warn">出現多次</span> 建議填前後文；
+            <span class="tag err">找不到</span> 請檢查用字。滑鼠移到標籤上可以看詳細說明。</dd>
+          <dt>↑ ✕</dt><dd>往上移、刪除這則註釋。註釋建議依原文出現的順序排列。</dd>
+        </dl>
+
+        <h3>創作背景、賞析</h3>
+        <p>空一行代表分段。賞析建議 3–5 段。</p>
+
+        <h3>下方按鈕</h3>
+        <dl>
+          <dt>檢查</dt><dd>只檢查不儲存，在左下方列出錯誤（紅色，必須修正）與提醒（橘色，可以不改）。</dd>
+          <dt>儲存</dt><dd>沒有錯誤才會寫入資料，寫入前自動備份。</dd>
+          <dt>預覽</dt><dd>在網站中打開這一篇，看的是已儲存的內容，所以請先儲存。</dd>
+          <dt>匯出稿件</dt><dd>把這一篇轉成文字稿件，可以複製或下載保存，之後也能用「匯入稿件」貼回來。</dd>
+          <dt>刪除作品</dt><dd>刪除這一篇（會先確認並備份）。如果這位作者已經沒有其他作品，作者資料也會一併移除。</dd>
+        </dl>
+
+        <h3>小提示</h3>
+        <ul>
+          <li>滑鼠移到任何按鈕上，都會出現簡短說明。</li>
+          <li>還沒儲存就切換作品或關閉頁面時，會先詢問。</li>
+          <li>不小心存錯了，可以從 <code>.backup/</code> 找回之前的版本，把它複製回 <code>public/data/poems.json</code>。</li>
+        </ul>
+      </div>
+      <div class="dlg-actions"><button class="btn primary" value="close">知道了</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="editor.js"></script>
+</body>
+</html>
