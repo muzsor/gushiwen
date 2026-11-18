@@ -209,7 +209,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     print(f"古詩文編輯器已啟動：http://127.0.0.1:{PORT}")
-    print("只在這台電腦上可以使用。關閉請按 Ctrl+C。")
+    print("只在這臺電腦上可以使用。關閉請按 Ctrl+C。")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

@@ -95,6 +95,12 @@ button { font: inherit; color: inherit; }
   pointer-events: none;
 }
 .topbar > * { pointer-events: auto; }
+/* iOS 26 起，加入主畫面後的狀態列顏色取樣最上方 fixed 元素的底色（不再讀 theme-color）。
+   放一條和背景同色的 1px 細條在頂端，所以看不見；不吃點擊，在註釋面板底下 */
+#statusbar-tint {
+  position: fixed; top: 0; left: 0; right: 0; height: 1px; z-index: 21;
+  pointer-events: none; background-color: var(--bg);
+}
 .icon-btn {
   width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center; cursor: pointer; color: var(--ink);
@@ -255,6 +261,7 @@ button { font: inherit; color: inherit; }
 }
 .footnote p { margin: 0 0 .6em; }
 .footnote p > span { display: inline-block; }   /* 一個分句不拆開，只在標點後換行 */
+.footnote a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .footnote p:last-child { margin-bottom: 0; }
 .footnote-count { font-size: 13px; font-weight: 600; color: var(--ink-2); }
 
@@ -388,6 +395,9 @@ button { font: inherit; color: inherit; }
 .sheet-grip { width: 38px; height: 5px; border-radius: 3px; background: var(--ink-3); opacity: .5; margin: 0 auto 14px; }
 .sheet-term { font-size: 26px; font-weight: 600; color: var(--accent); letter-spacing: .12em; }
 .sheet-note { margin-top: 6px; font-size: 16px; line-height: 1.8; }
+/* 參考資料：每筆一行，字小一點 */
+.refs { margin: 0; padding-left: 1.2em; font-size: 15px; color: var(--ink-2); }
+.refs li + li { margin-top: 4px; }
 
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;

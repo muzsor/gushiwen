@@ -16,7 +16,7 @@ const PAGE_SIZE = 10;   // 目錄每頁顯示幾篇
 const DYNASTY_ORDER = ['先秦', '秦', '漢', '三國', '魏晉', '南北朝', '隋', '唐', '五代', '宋', '元', '明', '清', '臺灣'];
 const FORM_ORDER = [
   '四言詩', '樂府詩', '五言古詩', '七言古詩', '雜言古詩', '五言絕句', '七言絕句', '五言律詩', '七言律詩',
-  '詞', '散曲',
+  '詞', '散曲', '雜劇',
   '史傳', '論說', '奏議', '雜記', '辭賦', '序跋', '小說'
 ];
 const rankOf = (list, v) => { const i = list.indexOf(v); return i < 0 ? 999 : i; };
@@ -194,7 +194,8 @@ function renderListBody() {
     ${pagerHTML(listState.page, pages)}
     <footer class="footnote">
       <p class="footnote-count">共 ${poems.length} 篇</p>
-      <p><span>作品原文屬公有領域；</span><span>語譯、註釋、賞析、作者介紹與創作背景均為自行編撰。</span></p>
+      <p><span>作品原文屬公有領域；</span><span>語譯、註釋、賞析、作者介紹與創作背景</span><span>依古籍原典與歷代注本編撰，並逐篇核對出處。</span></p>
+      <p><span>讀音與字義以教育部《重編國語辭典修訂本》為準，</span><span>引用依其授權標示，</span><span>見<a href="licenses/moe-dict.html">授權與出處說明</a>。</span></p>
       <p><span>以上內容僅供學習參考，</span><span>雖力求正確，仍可能有疏漏，</span><span>也不代表教科書或考試的標準解釋。</span><span>引用時請查證原典與權威資料。</span></p>
     </footer>`;
 
@@ -338,6 +339,8 @@ function renderPoem(id) {
     ${section('賞析', paras(p.analysis))}
     ${section(isSource ? '出處' : '作者', `<p><strong>${esc(a.name)}</strong><span class="author-years">${esc(a.dynasty)}・${esc(a.years)}</span></p>${paras(a.intro)}`)}
     ${section('創作背景', paras(p.background))}
+    ${p.edition?.length ? section('版本', paras(p.edition)) : ''}
+    ${p.references?.length ? section('參考資料', `<ul class="refs">${p.references.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`) : ''}
     <nav class="pager">
       ${prev ? `<a href="#/poem/${prev.id}">上一篇<span>${esc(prev.title)}</span></a>` : '<div class="spacer"></div>'}
       ${next ? `<a class="next" href="#/poem/${next.id}">下一篇<span>${esc(next.title)}</span></a>` : '<div class="spacer"></div>'}
@@ -391,7 +394,9 @@ $('#helpClose').addEventListener('click', closeHelp);
 /* ---------- 註釋面板 ---------- */
 function openSheet(n) {
   $('#sheetTerm').textContent = n.term;
-  $('#sheetNote').textContent = n.note;
+  // 分項的註釋（①②…）每項各占一行：圓圈數字前面是「。；：」（後面可以接引號、括號）時才換行，
+  // 「語譯從①」這類句中引用不換行
+  $('#sheetNote').innerHTML = esc(n.note).replace(/([。；：][」』）〉》]*)\s*(?=[①-⑩])/g, '$1<br>');
   $('#sheet').hidden = false; $('#sheetBackdrop').hidden = false;
 }
 function closeSheet() {
@@ -459,9 +464,51 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
+/* ---------- 轉向補救 ----------
+   狀態列用 default 樣式時，iPhone 橫向會隱藏狀態列；轉回直向後 WebKit 的觸控座標可能停在橫向的位置，
+   按鈕要點偏一點才按得到。等畫面尺寸穩定後，把 viewport-fit 暫時切成 auto 再切回 cover，強迫重新計算版面。 */
+function installRotationFix() {
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (!meta || !meta.content.includes('viewport-fit=cover')) return;
+  const original = meta.content;
+  // 切回 cover 用 setTimeout 而不是 requestAnimationFrame：頁面不在前景時 rAF 會暫停，meta 就會卡在 auto
+  const kick = () => {
+    const y = window.scrollY;
+    meta.content = original.replace('viewport-fit=cover', 'viewport-fit=auto');
+    setTimeout(() => {
+      meta.content = original;
+      const root = document.documentElement;
+      root.style.height = window.innerHeight + 'px';
+      void root.offsetHeight;
+      root.style.height = '';
+      window.scrollTo(0, y);
+    }, 50);
+  };
+  let poll = null;
+  const onRotate = () => {
+    clearInterval(poll);
+    let last = null, stable = 0, ticks = 0;
+    poll = setInterval(() => {
+      const now = `${window.innerWidth}x${window.innerHeight}`;
+      stable = now === last ? stable + 1 : 0;
+      last = now;
+      ticks++;
+      if (stable >= 2 || ticks > 20) {
+        clearInterval(poll);
+        poll = null;
+        kick();
+        setTimeout(kick, 400);
+      }
+    }, 100);
+  };
+  window.addEventListener('orientationchange', onRotate);
+  if (screen.orientation) screen.orientation.addEventListener('change', onRotate);
+}
+
 /* ---------- 啟動 ---------- */
 (async function start() {
   applyPrefs();
+  installRotationFix();
   try {
     const res = await fetch('data/poems.json');
     DATA = await res.json();

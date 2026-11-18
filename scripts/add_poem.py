@@ -32,7 +32,7 @@ HEAD = {
 }
 TYPES = {"詩詞": "verse", "詩": "verse", "詞": "verse", "曲": "verse", "散文": "prose", "文": "prose"}
 TYPE_NAMES = {"verse": "詩詞", "prose": "散文"}
-SECTIONS = ["作者介紹", "小序", "原文與語譯", "註釋", "創作背景", "賞析"]
+SECTIONS = ["作者介紹", "小序", "原文與語譯", "註釋", "創作背景", "版本", "賞析", "參考資料"]
 TR = re.compile(r"^譯[：:]\s*")
 
 
@@ -140,6 +140,12 @@ def parse(text):
     bg = paragraphs(sections.get("創作背景", []))
     poem["background"] = bg[0] if len(bg) == 1 else bg
     poem["analysis"] = paragraphs(sections.get("賞析", []))
+    ed = paragraphs(sections.get("版本", []))
+    if ed:
+        poem["edition"] = ed
+    refs = [l.strip() for l in sections.get("參考資料", []) if l.strip()]
+    if refs:
+        poem["references"] = refs
 
     author = None
     if head.get("author_name") or head.get("dynasty") or sections.get("作者介紹"):
@@ -214,7 +220,12 @@ def export(pid, data):
     out.append("【註釋】")
     out += [f"{n['term']}｜{n['in']}：{n['note']}" if n.get("in") else f"{n['term']}：{n['note']}" for n in p["notes"]]
     bg = p["background"] if isinstance(p["background"], list) else [p["background"]]
-    out += ["", "【創作背景】", "\n\n".join(bg), "", "【賞析】", "\n\n".join(p["analysis"]), ""]
+    out += ["", "【創作背景】", "\n\n".join(bg), ""]
+    if p.get("edition"):
+        out += ["【版本】", "\n\n".join(p["edition"]), ""]
+    out += ["【賞析】", "\n\n".join(p["analysis"]), ""]
+    if p.get("references"):
+        out += ["【參考資料】", *p["references"], ""]
     return "\n".join(out)
 
 

@@ -1,6 +1,6 @@
 // 離線快取。修改任何檔案（例如在 data/poems.json 新增詩文）後，
 // 把 VERSION 改成新的值，手機連網開啟一次就會更新。
-const VERSION = 'gushiwen-1.0.0';
+const VERSION = 'gushiwen-1.1.0';
 const FILES = [
   './',
   'index.html',
@@ -8,6 +8,7 @@ const FILES = [
   'css/style.css',
   'js/app.js',
   'data/poems.json',
+  'licenses/moe-dict.html',
   'icons/icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',

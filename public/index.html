@@ -11,7 +11,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="中國古詩文">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- default：網頁不延伸到狀態列底下。black-translucent 在 iOS 26 起會被系統鋪上無法關閉的模糊效果。
+       狀態列顏色：iOS 26 起不再讀 theme-color，改為取樣最上方 fixed 元素的底色，所以用 #statusbar-tint 給它背景色。
+       default 下橫向會隱藏狀態列，轉回直向後觸控位置可能偏移，由 app.js 的 installRotationFix 補救。 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="stylesheet" href="css/style.css">
@@ -83,7 +86,7 @@
         <li><b>有點狀底線的字詞</b>：點一下會從下方跳出註釋，點空白處關閉。題目裡的字也可能有底線。</li>
         <li><b>原文下的灰色小字</b>：這一句的語譯。</li>
         <li><b>右下角「譯」</b>：顯示或隱藏語譯。紅色是顯示中，白色是已隱藏。想先自己讀懂時可以先關掉。</li>
-        <li><b>賞析、作者、創作背景</b>：點標題展開或收合。</li>
+        <li><b>賞析、作者、創作背景、版本、參考資料</b>：點標題展開或收合。「版本」說明原文依據的版本，各版本的不同寫法寫在註釋中。</li>
         <li><b>上一篇／下一篇</b>：在頁面最下方，依目錄順序切換作品。</li>
         <li><b>左上角「‹」</b>：回到目錄。</li>
       </ul>
@@ -95,12 +98,14 @@
       <h3>離線閱讀</h3>
       <ul>
         <li>在 iPhone 用 Safari 開啟，按「分享」→「加入主畫面」。第一次開啟並看到「已下載完成」後，沒有網路也能讀。</li>
-        <li>你的設定只存在這台裝置上。</li>
+        <li>你的設定只存在這臺裝置上。</li>
       </ul>
     </div>
   </div>
 
   <div class="toast" id="toast" hidden></div>
+  <!-- 1px 高、貼齊最上方的 fixed 元素，只用來讓 iOS 26 起把狀態列塗成背景色 -->
+  <div id="statusbar-tint" aria-hidden="true"></div>
 
   <script src="js/app.js"></script>
 </body>

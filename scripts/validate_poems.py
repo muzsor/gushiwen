@@ -16,10 +16,10 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 DYNASTIES = ["先秦", "秦", "漢", "三國", "魏晉", "南北朝", "隋", "唐", "五代", "宋", "元", "明", "清", "臺灣"]
 FORMS = ["四言詩", "樂府詩", "五言古詩", "七言古詩", "雜言古詩", "五言絕句", "七言絕句", "五言律詩", "七言律詩",
-         "詞", "散曲", "史傳", "論說", "奏議", "雜記", "辭賦", "序跋", "小說"]
+         "詞", "散曲", "雜劇", "史傳", "論說", "奏議", "雜記", "辭賦", "序跋", "小說"]
 # 常見簡體字（排除正體文言中也會用的字，如云、后、余、于、只、台、里、范、采）
 SIMPLIFIED = set("们这为时东门见发来国学个书长马鸟问间关观对开头实变让认进运还过无语说请读调论证识话该车军张亲树电乐乡兴举义从众会传伤体儿兰写农决净凤击刘则刚创别剑剧劝办务动劳势区医华单卖卫历压县参双叶号听启员响团园围图圆圣场坏块坚坛声处备复够夺奋奖妇妈孙宁宝审宫宽宾寻导寿将尔尘尝尽层岁岂岛岭师帅帐帘带帮广庄庆库应庙废异弃弹归当录彻径忆忧怀态总恋恶惊惨惯愿战户扑执扩扫扬扰抚报担拟择挂挥损换摆摇敌数断旧显晓晕暂术杀杂权条杨杰极构枪柜标栏样桥梦检楼欢欧残毁毕气汇汉汤沟没泪泽洁浅浆测济浑浓涛涨渐渔温湾湿满滚滞潜灭灯灵灾烂烟烦烧热爱爷牵犹独狮猎献环现画畅疗盐监盖盘矿码础确碍礼祸离种积称稳穷窃竞笔筑签简类粮紧红约级纪纯纲纳纵纷纸线练组细织终绍经结绕绘给络绝统继绩续绳维绵绿缓编缘网罗罚罢职联肃肠肤胆脉脑脚脸艰艺节芦苍苏荐药莲获营萧蓝虑虚虽蚕补装规视览觉触计订讨训议讯记讲许设访评诉词译试诗诚询详误谁谈谋谓谢谦谨谱贝负贡财责贤败货质贩贪贫购贯贵贸费贺资赏赐赞赢赵赶趋跃践踪轨轮软轻载较辅辈输辞边辽达迁迈违连迟递遗邻郑酿释针钟钢钱铁铜银铺链销锁锋错锦镇闭闲闻阅阔队阳阴阵阶际陆陈险随隐难雾韩页顶项顺须顾顿预领频题颜额风飞饭饮饰馆驱驻骑鱼鲜鸡鸣鸭鸿鹤黄齐齿龙龟")
-# 非台灣教育部標準字形的異體字 → 標準字
+# 非臺灣教育部標準字形的異體字 → 標準字
 VARIANTS = {"内": "內", "户": "戶", "吴": "吳", "説": "說", "悦": "悅", "脱": "脫", "税": "稅", "锐": "銳", "兑": "兌",
             "鷄": "雞", "峯": "峰", "敎": "教", "淸": "清", "靑": "青", "眞": "真", "卽": "即", "旣": "既", "産": "產",
             "鄕": "鄉", "争": "爭", "爲": "為", "裏": "裡", "衆": "眾", "着": "著", "温": "溫", "吕": "呂", "彦": "彥",
@@ -50,9 +50,19 @@ def texts_of(p):
         v = p[k]
         for i, t in enumerate(v if isinstance(v, list) else [v]):
             yield f"{k}[{i}]", t
+    for i, t in enumerate(p.get("edition") or []):
+        yield f"edition[{i}]", t
+    for i, t in enumerate(p.get("references") or []):
+        yield f"references[{i}]", t
+
+
+# 有些字在正體文言中本來就有獨立用法，只在這些詞裡放行（其他地方出現仍視為簡體字）
+TRAD_OK = ["敲扑", "曰扑", "鞭扑", "愿而恭", "謹愿", "鄉愿", "愿，", "愿：", "「愿」"]
 
 
 def check_chars(where, text, errs):
+    for w in TRAD_OK:
+        text = text.replace(w, "")
     bad = sorted({c for c in text if c in SIMPLIFIED})
     if bad:
         errs.append(f"{where}: 疑似簡體字 {''.join(bad)}")
@@ -82,6 +92,12 @@ def check(data, authors_all, name):
             errs.append(f"{tag}: 體裁不在清單：{p['form']}")
         if p["type"] not in ("verse", "prose"):
             errs.append(f"{tag}: type 只能是 verse 或 prose：{p['type']}")
+        refs = p.get("references")
+        if refs is not None and (not isinstance(refs, list) or not all(isinstance(r, str) and r.strip() for r in refs)):
+            errs.append(f"{tag}: references 要是字串陣列，每筆一項參考資料")
+        ed = p.get("edition")
+        if ed is not None and (not isinstance(ed, list) or not all(isinstance(r, str) and r.strip() for r in ed)):
+            errs.append(f"{tag}: edition 要是字串陣列，每筆一段版本說明")
         def pair_problem(x):
             if not (isinstance(x, list) and len(x) == 2 and all(isinstance(s, str) for s in x)):
                 return "格式應為 [\"原文\", \"語譯\"]"
@@ -126,6 +142,12 @@ def check(data, authors_all, name):
                     warns.append(f"{tag}: 註釋「{t}」只在題目中（會標在標題上）")
                 else:
                     errs.append(f"{tag}: 註釋「{t}」在原文與題目中都找不到")
+        # 同一處原文被兩則註釋重疊時，App 只能標出其中一則（另一則點不到）
+        plain = [n["term"] for n in p["notes"] if n.get("term") and not n.get("in")]
+        for a in plain:
+            for b2 in plain:
+                if a != b2 and a in b2 and full.count(a) == full.count(b2):
+                    warns.append(f"{tag}: 註釋「{a}」完全包在註釋「{b2}」裡，App 標不出「{a}」；請合併或改用 in 指定位置")
         if len(p["analysis"]) < 3:
             warns.append(f"{tag}: 賞析只有 {len(p['analysis'])} 段")
         for where, text in texts_of(p):

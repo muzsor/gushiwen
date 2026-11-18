@@ -9,7 +9,7 @@
 <body>
   <header class="bar">
     <h1>古詩文編輯器</h1>
-    <span class="bar-note">只在這台電腦上使用・儲存後推上 GitHub 才會更新網站</span>
+    <span class="bar-note">只在這臺電腦上使用・儲存後推上 GitHub 才會更新網站</span>
     <div class="bar-actions">
       <button type="button" id="newBtn" class="btn primary" data-tip-pos="below" data-tip="清空表單，開始新增一篇作品">＋ 新增作品</button>
       <button type="button" id="importBtn" class="btn" data-tip-pos="below" data-tip="貼上用文字寫好的稿件，自動填入表單">匯入稿件</button>
@@ -97,8 +97,18 @@
         </section>
 
         <section class="card">
+          <h2>版本</h2>
+          <textarea id="f-edition" class="input" rows="4" placeholder="原文依據的版本與比對過的版本，空一行分段（選填）"></textarea>
+        </section>
+
+        <section class="card">
           <h2>賞析</h2>
-          <textarea id="f-analysis" class="input" rows="8" placeholder="3–5 段，空一行分段"></textarea>
+          <textarea id="f-analysis" class="input" rows="8" placeholder="4–6 段，空一行分段"></textarea>
+        </section>
+
+        <section class="card">
+          <h2>參考資料</h2>
+          <textarea id="f-references" class="input" rows="4" placeholder="一行一筆，例如：朱熹《詩集傳》卷二（選填）"></textarea>
         </section>
       </form>
     </main>
@@ -135,9 +145,9 @@
           <li>填寫表單。原文與語譯可以一句一句輸入，也可以用「快速貼上整篇」。</li>
           <li>按右下角「檢查」看有沒有錯誤，沒問題就按「儲存」。</li>
           <li>按「預覽」到網站確認效果。</li>
-          <li>要發布到網站時：把 <code>public/sw.js</code> 第一行的版本號往上加，再推上 GitHub。</li>
+          <li>要發布到網站時：把 <code>public/sw.js</code> 開頭的 <code>VERSION</code> 版本號往上加，再推上 GitHub。</li>
         </ol>
-        <p class="note">編輯器只在這台電腦上運作，別人無法使用。每次儲存、刪除或調整順序前，原本的資料都會備份到專案的 <code>.backup/</code> 資料夾。</p>
+        <p class="note">編輯器只在這臺電腦上運作，別人無法使用。每次儲存、刪除或調整順序前，原本的資料都會備份到專案的 <code>.backup/</code> 資料夾。</p>
 
         <h3>上方按鈕</h3>
         <dl>
@@ -197,8 +207,12 @@
           <dt>↑ ✕</dt><dd>往上移、刪除這則註釋。註釋建議依原文出現的順序排列。</dd>
         </dl>
 
-        <h3>創作背景、賞析</h3>
-        <p>空一行代表分段。賞析建議 3–5 段。</p>
+        <h3>創作背景、版本、賞析、參考資料</h3>
+        <dl>
+          <dt>創作背景、賞析</dt><dd>空一行代表分段。賞析建議 4–6 段。</dd>
+          <dt>版本（選填）</dt><dd>寫原文依據的版本，以及比對過的版本與差異概述，空一行分段。各版本的不同寫法，逐處寫在對應的註釋中，例如「版本：本站依《甲書》卷幾作『某』；《乙書》卷幾作『某』。」</dd>
+          <dt>參考資料（選填）</dt><dd>實際查閱並用到的文獻，一行一筆，例如「朱熹《詩集傳》卷二」。</dd>
+        </dl>
 
         <h3>下方按鈕</h3>
         <dl>

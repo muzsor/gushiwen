@@ -191,6 +191,8 @@ function fillForm(p, authorOverride) {
   $('#notes').replaceChildren(...(p.notes || []).map(noteRow));
   $('#f-background').value = joinParas(p.background || '');
   $('#f-analysis').value = joinParas(p.analysis || []);
+  $('#f-edition').value = joinParas(p.edition || []);
+  $('#f-references').value = (p.references || []).join('\n');
   renumber(); updateNoteStatus();
   $('#deleteBtn').hidden = $('#exportBtn').hidden = $('#previewBtn').hidden = !originalId;
   $('#report').replaceChildren();
@@ -311,6 +313,10 @@ function collect() {
   }).filter(n => n.term || n.note);
   poem.background = oneOrMany(paras($('#f-background').value));
   poem.analysis = paras($('#f-analysis').value);
+  const ed = paras($('#f-edition').value);
+  if (ed.length) poem.edition = ed;
+  const refs = $('#f-references').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (refs.length) poem.references = refs;
   const author = {
     id: poem.author, name: $('#a-name').value.trim(), dynasty: $('#a-dynasty').value,
     years: $('#a-years').value.trim(), intro: oneOrMany(paras($('#a-intro').value)),
