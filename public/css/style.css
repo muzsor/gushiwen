@@ -466,3 +466,9 @@ button { font: inherit; color: inherit; }
 .help-body ul { margin: 0; padding-left: 20px; }
 .help-body li { margin: 3px 0; }
 .help-body b { font-weight: 600; }
+
+/* 簡體模式：改用簡體字型（設定中切換「简体」時，html 的 lang 會改成 zh-Hans） */
+:root:lang(zh-Hans) {
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC",
+          "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+}

@@ -195,7 +195,21 @@ def save(data):
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     (backup / f"poems-{stamp}.json").write_text(DATA.read_text(encoding="utf-8"), encoding="utf-8")
     DATA.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(regen_hans())
     return backup / f"poems-{stamp}.json"
+
+
+def regen_hans():
+    """資料改動後重新產生簡體版（scripts/make_hans.py）。沒有安裝 OpenCC 時只提醒，不影響儲存。"""
+    spec = importlib.util.spec_from_file_location("make_hans", Path(__file__).with_name("make_hans.py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    try:
+        n, problems = m.build()
+    except RuntimeError as e:
+        return f"提醒：簡體版沒有更新（{e}），之後請執行 python -I scripts/make_hans.py"
+    msg = f"已更新簡體版（{n} 篇）"
+    return msg + "".join(f"\n問題 {x}" for x in problems)
 
 
 def export(pid, data):

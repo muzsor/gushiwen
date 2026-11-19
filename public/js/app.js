@@ -2,9 +2,34 @@
 
 /* ---------- 偏好設定（存在本機，讀寫失敗也不影響使用） ---------- */
 const PREF_KEY = 'gushiwen-prefs';
-const prefs = Object.assign({ fs: 20, layout: 'h', inlineTrans: true }, load());
+const prefs = Object.assign({ fs: 20, layout: 'h', inlineTrans: true, script: 'hant' }, load());
 function load() { try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; } catch { return {}; } }
 function save() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch {} }
+
+/* ---------- 正體／簡體 ----------
+   簡體版的作品資料由 scripts/make_hans.py 事先轉好（data/poems.hans.json，注音已轉成拼音）。
+   介面文字用 js/hans-ui.js 的逐字對照表轉換；作品內容已是簡體，不再轉換，
+   註釋與各區塊內文（#sheetNote、.section-body）中刻意保留正體的異文寫法也就不會被改掉。 */
+const HANS = prefs.script === 'hans' && !!self.HANS_UI;
+const T = s => HANS ? [...String(s)].map(c => self.HANS_UI[c] || c).join('') : s;
+const UI_SKIP = '.section-body, #sheetNote, .original';
+function convertUI(root) {
+  if (!HANS || !root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.parentElement && n.parentElement.closest(UI_SKIP)) continue;
+    const v = T(n.nodeValue);
+    if (v !== n.nodeValue) n.nodeValue = v;
+  }
+  const els = root.querySelectorAll ? [root, ...root.querySelectorAll('[placeholder],[aria-label],[data-tip],[title]')] : [];
+  for (const el of els) {
+    if (!el.getAttribute) continue;
+    for (const a of ['placeholder', 'aria-label', 'data-tip', 'title']) {
+      const v = el.getAttribute(a);
+      if (v) el.setAttribute(a, T(v));
+    }
+  }
+}
 
 const $ = s => document.querySelector(s);
 const app = $('#app');
@@ -19,7 +44,8 @@ const FORM_ORDER = [
   '詞', '散曲', '雜劇',
   '史傳', '論說', '奏議', '雜記', '辭賦', '序跋', '小說'
 ];
-const rankOf = (list, v) => { const i = list.indexOf(v); return i < 0 ? 999 : i; };
+// 簡體模式下資料中的朝代、體裁是簡體，比對前把清單也轉成簡體
+const rankOf = (list, v) => { const i = list.map(T).indexOf(v); return i < 0 ? 999 : i; };
 
 const authorOf = p => DATA.authors[p.author];
 const paras = v => (Array.isArray(v) ? v : [v]).map(t => `<p>${esc(t)}</p>`).join('');
@@ -29,7 +55,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 
 function toast(msg) {
   const t = $('#toast');
-  t.textContent = msg; t.hidden = false;
+  t.textContent = T(msg); t.hidden = false;
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => (t.hidden = true), 2400);
 }
@@ -156,6 +182,7 @@ function renderList() {
     };
     input.addEventListener('input', e => { if (!e.isComposing) update(); });   // 選字中不更新
     input.addEventListener('compositionend', update);                         // 選完字再搜尋
+    convertUI(app);
   }
   renderListBody();
 }
@@ -194,10 +221,12 @@ function renderListBody() {
     ${pagerHTML(listState.page, pages)}
     <footer class="footnote">
       <p class="footnote-count">共 ${poems.length} 篇</p>
-      <p><span>作品原文屬公有領域；</span><span>語譯、註釋、賞析、作者介紹與創作背景</span><span>依古籍原典與歷代注本編撰，並逐篇核對出處。</span></p>
-      <p><span>讀音與字義以教育部《重編國語辭典修訂本》為準，</span><span>引用依其授權標示，</span><span>見<a href="licenses/moe-dict.html">授權與出處說明</a>。</span></p>
+      <p><span>作品原文屬公有領域；</span><span>語譯、註釋、賞析、作者介紹、創作背景與版本說明</span><span>依古籍原典與歷代注本編撰，並逐篇核對出處。</span></p>
+      <p><span>讀音與字義以教育部《重編國語辭典修訂本》為準，</span><span>出處標示</span><span>見<a href="licenses/moe-dict.html">授權與出處說明</a>。</span></p>
       <p><span>以上內容僅供學習參考，</span><span>雖力求正確，仍可能有疏漏，</span><span>也不代表教科書或考試的標準解釋。</span><span>引用時請查證原典與權威資料。</span></p>
+      ${HANS ? '<p><span>簡體版由正體自動轉換，</span><span>讀音改以拼音標示；</span><span>註釋中說明版本差異的寫法保留正體。</span></p>' : ''}
     </footer>`;
+  convertUI(body);
 
   body.querySelectorAll('.filter').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
@@ -250,6 +279,7 @@ function openMenu(btn) {
     '<div class="menu-sep" role="separator"></div>' +
     filterOptions(f).map(o => item(o.v, o.label, o.n)).join('');
   menu.setAttribute('aria-label', f.name);
+  convertUI(menu);
   menu.hidden = false;
   menu.owner = btn;
   btn.setAttribute('aria-expanded', 'true');
@@ -332,7 +362,7 @@ function renderPoem(id) {
       ${p.source ? `<div class="poem-source">選自${esc(p.source)}</div>` : ''}
       <div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
     </div>
-    <div class="original ${prose ? 'prose' : ''} inline ${prefs.inlineTrans ? '' : 'no-trans'} ${prefs.layout === 'v' ? 'vertical' : ''}" lang="zh-Hant">
+    <div class="original ${prose ? 'prose' : ''} inline ${prefs.inlineTrans ? '' : 'no-trans'} ${prefs.layout === 'v' ? 'vertical' : ''}" lang="${HANS ? 'zh-Hans' : 'zh-Hant'}">
       ${original}
     </div>
     <div class="hint">點一下有底線的字詞，查看註釋；右下角「譯」可開關語譯</div>
@@ -355,6 +385,7 @@ function renderPoem(id) {
     b.addEventListener('click', open);
     b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
   });
+  convertUI(app);
   setTransBtn(true);
   window.scrollTo(0, 0);
 }
@@ -365,8 +396,8 @@ function setTransBtn(show) {
   transBtn.hidden = !show;
   app.classList.toggle('has-fab', show);   // 底部多留空間，最下方的內容才不會被按鈕蓋住
   transBtn.setAttribute('aria-pressed', String(prefs.inlineTrans));
-  transBtn.setAttribute('aria-label', prefs.inlineTrans ? '隱藏語譯' : '顯示語譯');
-  transBtn.dataset.tip = prefs.inlineTrans ? '隱藏語譯' : '顯示語譯';
+  transBtn.setAttribute('aria-label', T(prefs.inlineTrans ? '隱藏語譯' : '顯示語譯'));
+  transBtn.dataset.tip = T(prefs.inlineTrans ? '隱藏語譯' : '顯示語譯');
 }
 transBtn.addEventListener('click', () => {
   const o = app.querySelector('.original.inline');
@@ -409,9 +440,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSheet
 
 /* ---------- 頂部列與設定 ---------- */
 function setTop(title, showBack) {
-  $('#topTitle').textContent = title;
+  $('#topTitle').textContent = T(title);
   $('#backBtn').hidden = !showBack;
-  document.title = showBack ? `${title}｜中國古詩文` : '中國古詩文';
+  document.title = T(showBack ? `${title}｜中國古詩文` : '中國古詩文');
 }
 $('#backBtn').addEventListener('click', () => { location.hash = '#/'; });
 $('#settingsBtn').addEventListener('click', e => { e.stopPropagation(); $('#settings').hidden = !$('#settings').hidden; });
@@ -431,13 +462,13 @@ function applyFontLevel() {
     if (i < cur) dot.className = 'on';
     return dot;
   }));
-  box.setAttribute('aria-label', `字級：第 ${cur} 級，共 ${levels} 級`);
-  box.dataset.tip = `第 ${cur} 級，共 ${levels} 級`;
+  box.setAttribute('aria-label', T(`字級：第 ${cur} 級，共 ${levels} 級`));
+  box.dataset.tip = T(`第 ${cur} 級，共 ${levels} 級`);
   for (const b of document.querySelectorAll('[data-font]')) {
     const up = b.dataset.font === '1';
     const atEnd = up ? prefs.fs >= FS_MAX : prefs.fs <= FS_MIN;
     b.disabled = atEnd;
-    b.dataset.tip = atEnd ? (up ? '已經是最大字級' : '已經是最小字級') : (up ? '放大原文的字' : '縮小原文的字');
+    b.dataset.tip = T(atEnd ? (up ? '已經是最大字級' : '已經是最小字級') : (up ? '放大原文的字' : '縮小原文的字'));
   }
 }
 
@@ -445,7 +476,14 @@ function applyPrefs() {
   document.documentElement.style.setProperty('--fs', prefs.fs + 'px');
   applyFontLevel();
   document.querySelectorAll('#layoutSeg button').forEach(b => b.classList.toggle('on', b.dataset.layout === prefs.layout));
+  document.querySelectorAll('#scriptSeg button').forEach(b => b.classList.toggle('on', b.dataset.script === (HANS ? 'hans' : 'hant')));
 }
+// 切換正體／簡體：記下設定後重新載入，換用另一份作品資料與介面文字
+document.querySelectorAll('[data-script]').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.script === (HANS ? 'hans' : 'hant')) return;
+  prefs.script = b.dataset.script; save();
+  location.reload();
+}));
 document.querySelectorAll('[data-font]').forEach(b => b.addEventListener('click', () => {
   prefs.fs = Math.min(FS_MAX, Math.max(FS_MIN, prefs.fs + Number(b.dataset.font) * FS_STEP));
   save(); applyPrefs();
@@ -507,10 +545,15 @@ function installRotationFix() {
 
 /* ---------- 啟動 ---------- */
 (async function start() {
+  if (HANS) {
+    document.documentElement.lang = 'zh-Hans';
+    convertUI(document.body);
+    document.title = T(document.title);
+  }
   applyPrefs();
   installRotationFix();
   try {
-    const res = await fetch('data/poems.json');
+    const res = await fetch(HANS ? 'data/poems.hans.json' : 'data/poems.json');
     DATA = await res.json();
     // 依朝代先後排列（同朝代維持資料檔中的順序），目錄與上下篇都照這個順序
     DATA.poems = DATA.poems
@@ -519,7 +562,7 @@ function installRotationFix() {
       .map(x => x.p);
     route();
   } catch (e) {
-    app.innerHTML = '<div class="empty">資料載入失敗。第一次使用請先連上網路開啟一次。</div>';
+    app.innerHTML = `<div class="empty">${T(HANS ? '簡體版資料載入失敗。第一次切換到簡體時請先連上網路。' : '資料載入失敗。第一次使用請先連上網路開啟一次。')}</div>`;
   }
 
   if ('serviceWorker' in navigator) {

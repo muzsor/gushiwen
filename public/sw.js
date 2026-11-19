@@ -1,11 +1,12 @@
 // 離線快取。修改任何檔案（例如在 data/poems.json 新增詩文）後，
 // 把 VERSION 改成新的值，手機連網開啟一次就會更新。
-const VERSION = 'gushiwen-1.1.0';
+const VERSION = 'gushiwen-1.2.0';
 const FILES = [
   './',
   'index.html',
   'manifest.json',
   'css/style.css',
+  'js/hans-ui.js',
   'js/app.js',
   'data/poems.json',
   'licenses/moe-dict.html',
@@ -30,13 +31,20 @@ self.addEventListener('activate', event => {
   );
 });
 
-// 先讀快取，沒有才連網（離線優先）
+// 先讀快取，沒有才連網（離線優先）。連網取得的同源檔案也存進快取，
+// 例如第一次切換到簡體時下載的 data/poems.hans.json，之後離線也能讀
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then(hit => {
       if (hit) return hit;
-      return fetch(event.request).catch(() =>
+      return fetch(event.request).then(res => {
+        if (res.ok && new URL(event.request.url).origin === self.location.origin) {
+          const copy = res.clone();
+          caches.open(VERSION).then(cache => cache.put(event.request, copy));
+        }
+        return res;
+      }).catch(() =>
         event.request.mode === 'navigate' ? caches.match('./') : Response.error()
       );
     })

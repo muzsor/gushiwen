@@ -5,12 +5,12 @@
 <h1 align="center">📜 中國古詩文</h1>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.2.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="#-安裝到-iphone"><img src="https://img.shields.io/badge/PWA-ready-success.svg" alt="PWA"></a>
 </p>
 
-<p align="center">免費、無廣告、可離線的古詩文閱讀器，附語譯、註釋、賞析、作者介紹與創作背景。<br>純 HTML / CSS / JavaScript，零依賴、零建置、零追蹤。<br>加入 iPhone 主畫面後，沒有網路也能讀。</p>
+<p align="center">免費、無廣告、可離線的古詩文閱讀器，附語譯、註釋、賞析、作者介紹、創作背景、版本與參考資料，可切換正體／简体。<br>純 HTML / CSS / JavaScript，零依賴、零建置、零追蹤。<br>加入 iPhone 主畫面後，沒有網路也能讀。</p>
 
 > 🔗 **線上版**：https://muzsor.github.io/gushiwen/
 >
@@ -196,9 +196,9 @@
 
 原文以[維基文庫](https://zh.wikisource.org/)為準，依作品出處選用對應的版本（例如〈鴻門宴〉用《史記・項羽本紀》）；維基文庫的主條目若是混合各本的整理文字，改用有明確底本、與兩岸課本最接近的單一版本。字形一律採教育部標準字（例如維基文庫的「爲」寫作「為」）。
 
-每篇作品都附有語譯、註釋、賞析、作者介紹（或出處介紹）、創作背景與參考資料。閱讀頁最上方是原文，每句原文下附語譯，字詞可點開看註釋；下方依序為賞析 → 作者 → 創作背景 → 版本 → 參考資料 → 上下篇。
+每篇作品都附有語譯、註釋、賞析、作者介紹（或出處介紹）、創作背景、版本與參考資料。閱讀頁最上方是原文，每句原文下附語譯，字詞可點開看註釋；下方依序為賞析 → 作者 → 創作背景 → 版本 → 參考資料 → 上下篇。
 
-「版本」區塊說明原文依據的底本，以及比對過哪些版本、差異大致如何；各版本的不同寫法逐處寫在註釋中，連單字不同也列出。目前已完成 41 篇，其餘作品陸續補齊。
+「版本」區塊說明原文依據的底本，以及比對過哪些版本、差異大致如何；各版本的不同寫法逐處寫在註釋中，連單字不同也列出。全站 153 篇都已完成。
 
 ---
 
@@ -212,6 +212,7 @@
 - 📖 原文下附語譯：每句原文下方直接顯示語譯（散文也逐句對照），字詞仍可點開看註釋
 - 🈯 語譯開關：閱讀頁右下角的「譯」按鈕可隨時顯示或隱藏語譯，選擇會記住
 - 📜 版本與參考資料：說明原文依據的版本、列出各版本的不同寫法，並附上每篇依據的文獻
+- 🔤 正體／简体切換：簡體版的讀音以拼音標示；註釋中說明版本差異的寫法保留正體，才看得出各版本的不同
 - ❓ 使用說明：設定面板中的「使用說明」逐一解釋每個按鈕；電腦上滑鼠移到按鈕上也會出現說明
 - 🌗 淺色／深色模式跟隨系統自動切換
 - 🫧 Liquid Glass 風格：純色背景，浮動按鈕與面板使用玻璃材質，捲動不卡頓
@@ -243,6 +244,8 @@
 | `public/css/style.css` | 樣式：配色、玻璃材質、目錄與閱讀頁排版、直排 |
 | `public/js/app.js` | 畫面流程：路由、目錄搜尋、閱讀頁、註釋、閱讀設定 |
 | `public/data/poems.json` | 所有作品與作者資料 |
+| `public/data/poems.hans.json` | 簡體版作品資料（由 `scripts/make_hans.py` 自動產生，不要手動修改） |
+| `public/js/hans-ui.js` | 簡體模式的介面文字對照表（自動產生，不要手動修改） |
 | `public/sw.js` | Service Worker 離線快取 |
 | `public/manifest.json` | PWA 設定 |
 | `public/icons/` | App 圖示：iPhone 用 180、其他系統用 192／512（已裁圓角）、Android 自適應圖示用 maskable 512 |
@@ -251,6 +254,7 @@
 | `scripts/make_icon.py` | 圖示產生腳本 |
 | `scripts/add_poem.py` | 用純文字稿件新增、修改或匯出作品 |
 | `scripts/validate_poems.py` | 檢查作品資料的格式與內容 |
+| `scripts/make_hans.py` | 產生簡體版資料（正體轉簡體、注音轉拼音） |
 | `templates/作品稿件範本.txt` | 新增作品用的稿件範本 |
 | `.github/workflows/deploy.yml` | 推送到 `main` 時自動部署 `public/` 到 GitHub Pages |
 
@@ -377,7 +381,7 @@ python -I scripts/add_poem.py add 陋室銘.txt --replace
 
 **直接編輯 JSON**
 
-稿件會轉成下面的格式；也可以直接編輯 `public/data/poems.json`，改完執行 `python -I scripts/validate_poems.py check public/data/poems.json` 確認「錯誤數 0」。
+稿件會轉成下面的格式；也可以直接編輯 `public/data/poems.json`，改完執行 `python -I scripts/validate_poems.py check public/data/poems.json` 確認「錯誤數 0」，再執行 `python -I scripts/make_hans.py` 更新簡體版。
 
 ```jsonc
 {
@@ -441,11 +445,19 @@ python -I scripts/add_poem.py add 陋室銘.txt --replace
 <details>
 <summary>🔢 發布新版本</summary>
 
-1. 改 `public/sw.js` 開頭的 `VERSION`（例如從 `gushiwen-1.1.0` 改成 `gushiwen-1.2.0`），已安裝的使用者才會下載新內容
+1. 改 `public/sw.js` 開頭的 `VERSION`（例如從 `gushiwen-1.2.0` 改成 `gushiwen-1.3.0`），已安裝的使用者才會下載新內容
 2. 在 [CHANGELOG.md](CHANGELOG.md) 記錄變更，版本號遵循[語意化版本](https://semver.org/lang/zh-TW/)
 3. 推上 `main` 後自動部署，已安裝的使用者下次連網開啟會看到「內容已更新」
 
 日常流程：在電腦上用編輯器新增或修改作品 → 更新版本號 → 推上 GitHub → 自動部署。
+
+**簡體版**：網頁編輯器與 `add_poem.py` 儲存時會自動重新產生 `public/data/poems.hans.json`。直接編輯 JSON，或修改了 `public/index.html`、`public/js/app.js` 的介面文字之後，要自己執行一次（需要先安裝 OpenCC：`pip install opencc-python-reimplemented`）：
+
+```bash
+python -I scripts/make_hans.py
+```
+
+產生的兩個檔案（`public/data/poems.hans.json`、`public/js/hans-ui.js`）要一起提交，網站部署時不會自動產生。
 
 </details>
 
@@ -497,7 +509,7 @@ python -I scripts/make_icon.py <古字圖.jpg> <LantingXu.jpg> public/icons prev
 
 ## ⚠️ 免責聲明
 
-- 作品原文屬公有領域；語譯、註釋、賞析、作者介紹與創作背景依古籍原典與歷代注本編撰，並逐篇核對出處。
+- 作品原文屬公有領域；語譯、註釋、賞析、作者介紹、創作背景與版本說明依古籍原典與歷代注本編撰，並逐篇核對出處。
 - 以上內容僅供學習參考，雖力求正確，仍可能有疏漏，也不代表教科書或考試的標準解釋。
 - 引用時請查證原典與權威資料。
 
@@ -507,5 +519,5 @@ python -I scripts/make_icon.py <古字圖.jpg> <LantingXu.jpg> public/icons prev
 
 - 程式碼與本站編撰的內容：[MIT](LICENSE)
 - 作品原文：公有領域
-- 讀音與字義以教育部《重編國語辭典修訂本》為準。註釋中逐字引用該辭典之處，依「創用 CC－姓名標示－禁止改作 臺灣 3.0 版」授權使用，出處標示：中華民國教育部（Ministry of Education, R.O.C.）。《重編國語辭典修訂本》（版本編號：2015_20260929）網址：https://dict.revised.moe.edu.tw/ 。完整使用說明見 [public/licenses/moe-dict.html](public/licenses/moe-dict.html)
+- 讀音與字義以教育部《重編國語辭典修訂本》為準，釋義以本站自己的文字說明，不逐字轉載辭典條目。該辭典採「創用 CC－姓名標示－禁止改作 臺灣 3.0 版」授權，出處標示：中華民國教育部（Ministry of Education, R.O.C.）。《重編國語辭典修訂本》（版本編號：2015_20260929）網址：https://dict.revised.moe.edu.tw/ 。完整使用說明見 [public/licenses/moe-dict.html](public/licenses/moe-dict.html)
 - 圖示印章中的「文」字：取自王羲之《蘭亭集序》唐馮承素摹本「未嘗不臨文嗟悼」一句，掃描檔來自維基共享資源 [File:LantingXu.jpg](https://commons.wikimedia.org/wiki/File:LantingXu.jpg)，屬公有領域

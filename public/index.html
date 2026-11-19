@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>中國古詩文</title>
-  <meta name="description" content="可離線使用的古詩文閱讀器，附語譯、註釋、賞析、作者介紹與創作背景。">
+  <meta name="description" content="可離線使用的古詩文閱讀器，附語譯、註釋、賞析、作者介紹、創作背景、版本與參考資料。">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -25,7 +25,7 @@
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <h1 class="topbar-title" id="topTitle">中國古詩文</h1>
-    <button class="icon-btn" id="settingsBtn" aria-label="閱讀設定" data-tip="閱讀設定：字級、排列方式、使用說明" data-tip-pos="below-left">
+    <button class="icon-btn" id="settingsBtn" aria-label="閱讀設定" data-tip="閱讀設定：字級、原文排列、正體／简体、使用說明" data-tip-pos="below-left">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
     </button>
   </header>
@@ -44,6 +44,13 @@
       <div class="seg" id="layoutSeg">
         <button data-layout="h" data-tip="原文由左至右、由上而下排列">橫排</button>
         <button data-layout="v" data-tip="原文由右至左直行排列，可左右滑動" data-tip-pos="above-left">直排</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span>文字</span>
+      <div class="seg" id="scriptSeg">
+        <button data-script="hant" data-tip="正體字，讀音以注音標示">正體</button>
+        <button data-script="hans" data-tip="简体字，读音以拼音标示" data-tip-pos="above-left">简体</button>
       </div>
     </div>
     <div class="setting-row">
@@ -94,6 +101,7 @@
       <ul>
         <li><b>A− ／ A＋</b>：縮小或放大原文的字。中間的小圓點表示目前的字級（共 9 級），到最小或最大時按鈕會變淡。</li>
         <li><b>橫排／直排</b>：直排時由右至左閱讀，內容較長時可以左右滑動。</li>
+        <li><b>正體／简体</b>：切換正體字或簡體字。簡體版由正體自動轉換，讀音改以拼音標示；註釋中說明版本差異的寫法（例如「遊」「游」）保留正體，才看得出各版本的不同。</li>
       </ul>
       <h3>離線閱讀</h3>
       <ul>
@@ -107,6 +115,7 @@
   <!-- 1px 高、貼齊最上方的 fixed 元素，只用來讓 iOS 26 起把狀態列塗成背景色 -->
   <div id="statusbar-tint" aria-hidden="true"></div>
 
+  <script src="js/hans-ui.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
