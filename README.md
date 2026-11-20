@@ -5,7 +5,7 @@
 <h1 align="center">📜 中國古詩文</h1>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.2.0-blue.svg" alt="Version"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="#-安裝到-iphone"><img src="https://img.shields.io/badge/PWA-ready-success.svg" alt="PWA"></a>
 </p>
@@ -206,17 +206,19 @@
 
 - 👆 點一下原文中有底線的字詞，從下方浮出註釋
 - 🔍 搜尋詩題、作者、朝代、體裁、主題或詩句
-- 🗂️ 依朝代、體裁、作者／出處篩選，可以同時套用；選項旁標出符合的篇數
+- 🗂️ 依朝代、體裁、作者／出處、閱讀紀錄（書籤、已讀、未讀）篩選，可以同時套用；選項旁標出符合的篇數
+- 🔖 書籤與已讀：閱讀頁右下角的閱讀工具按鈕「⋯」展開書籤、已讀、語譯三個按鈕；目錄卡片上標出記號，最下方顯示已讀篇數
 - 📄 目錄每頁 10 篇，以頁碼切換
-- 🔠 閱讀設定：字級放大縮小、原文橫排／直排切換
+- 🔠 閱讀設定：拖拉調整原文字級（題目大小固定）、原文橫排／直排切換
 - 📖 原文下附語譯：每句原文下方直接顯示語譯（散文也逐句對照），字詞仍可點開看註釋
-- 🈯 語譯開關：閱讀頁右下角的「譯」按鈕可隨時顯示或隱藏語譯，選擇會記住
+- 🈯 語譯開關：右下角展開後的「譯」按鈕可隨時顯示或隱藏語譯，選擇會記住；展開或收起也會記住
 - 📜 版本與參考資料：說明原文依據的版本、列出各版本的不同寫法，並附上每篇依據的文獻
 - 🔤 正體／简体切換：簡體版的讀音以拼音標示；註釋中說明版本差異的寫法保留正體，才看得出各版本的不同
 - ❓ 使用說明：設定面板中的「使用說明」逐一解釋每個按鈕；電腦上滑鼠移到按鈕上也會出現說明
 - 🌗 淺色／深色模式跟隨系統自動切換
 - 🫧 Liquid Glass 風格：純色背景，浮動按鈕與面板使用玻璃材質，捲動不卡頓
-- 💾 閱讀設定記在本機，下次開啟沿用
+- 🎞️ 動畫：換頁左右滑動、提示訊息從頂部膠囊彈出、面板開關都有動畫；手機開了「減少動態效果」時自動減到最少
+- 💾 閱讀設定、書籤與已讀紀錄記在本機，下次開啟沿用；設定面板可清除紀錄
 - 📱 PWA 離線快取，第一次開啟後不連網也能讀；有新版本時提示更新
 
 ---
@@ -445,7 +447,7 @@ python -I scripts/add_poem.py add 陋室銘.txt --replace
 <details>
 <summary>🔢 發布新版本</summary>
 
-1. 改 `public/sw.js` 開頭的 `VERSION`（例如從 `gushiwen-1.2.0` 改成 `gushiwen-1.3.0`），已安裝的使用者才會下載新內容
+1. 改 `public/sw.js` 開頭的 `VERSION`（例如從 `gushiwen-1.3.0` 改成 `gushiwen-1.4.0`），已安裝的使用者才會下載新內容
 2. 在 [CHANGELOG.md](CHANGELOG.md) 記錄變更，版本號遵循[語意化版本](https://semver.org/lang/zh-TW/)
 3. 推上 `main` 後自動部署，已安裝的使用者下次連網開啟會看到「內容已更新」
 
@@ -502,7 +504,7 @@ python -I scripts/make_icon.py <古字圖.jpg> <LantingXu.jpg> public/icons prev
 
 - 🚫 沒有 analytics、cookies、廣告
 - 🚫 沒有第三方 CDN，只用系統字體，不載入外部資源
-- ✅ 閱讀設定只存在自己瀏覽器的 localStorage
+- ✅ 閱讀設定、書籤與已讀紀錄只存在自己瀏覽器的 localStorage，不上傳、也不在裝置之間同步
 - ✅ Service Worker 只快取同源檔案
 
 ---

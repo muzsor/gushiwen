@@ -10,6 +10,7 @@
   /* 背景與內容卡片：純色（iOS 系統 App 的做法） */
   --bg: #f2f2f7;
   --card: #fff;
+  --card-edge: transparent;           /* 卡片外緣的細邊：只有深色模式用 */
   --fill: rgba(118, 118, 128, .12);   /* 搜尋框、未選取的篩選鈕 */
 
   /* 文字 */
@@ -34,12 +35,14 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #000;
-    --card: #1c1c1e;
+    /* 卡片比 iOS 的 #1c1c1e 亮一點，再加一圈淡白細邊，在純黑背景上輪廓才清楚 */
+    --card: #242426;
+    --card-edge: rgba(255, 255, 255, .08);
     --fill: rgba(118, 118, 128, .24);
 
     --ink: #fff;
     --ink-2: rgba(235, 235, 245, .72);
-    --ink-3: rgba(235, 235, 245, .5);
+    --ink-3: rgba(235, 235, 245, .6);
     --accent: #ff8f73;
     --accent-ink: #1b0f0b;
 
@@ -73,11 +76,12 @@ button { font: inherit; color: inherit; }
   position: relative;
   background: var(--card);
   border: 0;
+  box-shadow: inset 0 0 0 1px var(--card-edge);   /* 用內陰影畫細邊，不改變版面尺寸 */
 }
 .search, .filter, .seg { position: relative; background: var(--fill); border: 0; }
 
 /* ---------- Liquid Glass：只給浮在內容上方的元件 ---------- */
-.glass, .icon-btn, .topbar-title, .settings, .menu, .sheet, .toast, .trans-btn {
+.glass, .icon-btn, .topbar-title, .settings, .menu, .sheet, .toast, .fab-btn, .dialog {
   position: relative;
   background: var(--glass);
   -webkit-backdrop-filter: var(--blur);
@@ -89,7 +93,7 @@ button { font: inherit; color: inherit; }
 /* ---------- 頂部浮動列 ---------- */
 .topbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
-  display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; gap: 10px;
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) 46px; align-items: center; gap: 10px;
   max-width: 720px; margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + 8px) 14px 8px;
   pointer-events: none;
@@ -112,8 +116,12 @@ button { font: inherit; color: inherit; }
   justify-self: center; margin: 0; max-width: 100%;
   height: 46px; line-height: 44px; padding: 0 22px; border-radius: 23px;
   font-size: 17px; font-weight: 600; letter-spacing: .08em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 7px; min-width: 0;
 }
+/* 題目過長時以「…」截斷，後面的書籤、已讀小圖示一定留著 */
+.top-title-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-marks { flex: none; display: inline-flex; align-items: center; gap: 3px; color: var(--ink-3); }
+.top-marks svg { display: block; }
 
 /* ---------- 設定面板（浮動玻璃卡） ---------- */
 .settings {
@@ -127,6 +135,10 @@ button { font: inherit; color: inherit; }
   animation: pop .32s cubic-bezier(.3, 1.4, .5, 1);
 }
 @keyframes pop { from { transform: scale(.85); opacity: .4; } }
+/* 浮動面板收起時的動畫（app.js 的 hidePanel 加上 .leaving，播完才隱藏）：設定面板、篩選選單縮回，註釋與說明面板往下沉 */
+.leaving { pointer-events: none; }
+.settings.leaving, .menu.leaving { animation: pop-out .16s ease-in both; }
+@keyframes pop-out { to { transform: scale(.9); opacity: 0; } }
 .setting-row {
   display: flex; align-items: center; justify-content: space-between;
   min-height: 50px; font-size: 15px;
@@ -140,12 +152,31 @@ button { font: inherit; color: inherit; }
 }
 .seg button:active:not(:disabled) { transform: scale(.92); }
 .seg button:disabled { opacity: .3; cursor: default; }
-/* 字級指示：9 個小圓點，實心的數量＝目前字級 */
-.font-seg { align-items: center; }
-.font-seg button { min-width: 44px; padding: 5px 10px; }
-.font-level { display: inline-flex; align-items: center; gap: 3px; padding: 0 4px; }
-.font-level i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); opacity: .35; }
-.font-level i.on { background: var(--accent); opacity: 1; }
+/* 字級拖拉條：左右兩端的小「A」、大「A」示意大小；已拖過的一段塗上主色（--p 由 app.js 設定） */
+.font-slider { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 210px; margin-left: 16px; }
+.font-slider .a-small { font-size: 13px; color: var(--ink-2); }
+.font-slider .a-big { font-size: 21px; color: var(--ink-2); }
+.font-range {
+  --p: 25%;
+  flex: 1; min-width: 0; height: 28px; margin: 0; background: none; cursor: pointer;
+  -webkit-appearance: none; appearance: none; touch-action: none;
+}
+.font-range::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--p), var(--fill) var(--p));
+}
+.font-range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill); }
+.font-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+.font-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; margin-top: -11px; border-radius: 50%;
+  background: #fff; border: 0; box-shadow: 0 2px 6px rgba(0,0,0,.22), 0 0 0 .5px rgba(0,0,0,.06);
+}
+.font-range::-moz-range-thumb {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 0; box-shadow: 0 2px 6px rgba(0,0,0,.22), 0 0 0 .5px rgba(0,0,0,.06);
+}
+.font-range:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 .seg button.on { background: var(--accent); color: var(--accent-ink); box-shadow: 0 2px 8px rgba(178, 65, 44, .35); }
 .switch { position: relative; width: 52px; height: 32px; flex: none; }
 .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -180,15 +211,19 @@ button { font: inherit; color: inherit; }
 .search:focus { box-shadow: 0 0 0 2px var(--accent); }
 .search::-webkit-search-cancel-button { -webkit-appearance: none; }
 
-/* 篩選：朝代、體裁、作者／出處。點按鈕會在下方浮出玻璃選單 */
-.filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 0 6px; }
+/* 篩選：朝代、體裁、作者／出處、閱讀紀錄。點按鈕會在下方浮出玻璃選單。
+   排成固定的格子（手機 2×2、寬螢幕一行四格），按鈕等寬、過長的條件以「…」截斷，
+   選了不同長度的條件時篩選區高度不變，下方清單才不會上下跳動 */
+.filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px 0 6px; }
+@media (min-width: 560px) { .filters { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .filter {
-  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--ink-2);
+  display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; cursor: pointer; color: var(--ink-2);
   padding: 7px 14px 7px 16px; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 500;
   transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s;
 }
 .filter:active { transform: scale(.94); }
 .filter.on { background: var(--accent); color: var(--accent-ink); }
+.filter span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .filter svg { opacity: .7; flex: none; transition: transform .25s; }
 .filter[aria-expanded="true"] svg { transform: rotate(180deg); }
 .filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -223,6 +258,8 @@ button { font: inherit; color: inherit; }
   border: 0; background: none; cursor: pointer;
   padding: 4px 0 4px 12px; font-size: 14px; font-weight: 500; color: var(--accent);
 }
+/* 沒有篩選條件時「清除篩選」看不見，但位置保留，這一列的高度才不會變 */
+.filter-clear.is-off { visibility: hidden; }
 
 .list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
 .list > li { min-width: 0; }   /* 讓卡片不被一行的長摘句撐寬，摘句才會以「…」截斷 */
@@ -250,11 +287,19 @@ button { font: inherit; color: inherit; }
 .card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .card-title { font-size: 21px; font-weight: 600; letter-spacing: .08em; }
 .card-meta { font-size: 13px; color: var(--ink-3); }
+/* 卡片右上角的書籤與已讀標記 */
+.card-marks { margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: 6px; }
+.mark-bookmark { display: inline-grid; color: var(--accent); }
+.mark-read {
+  font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--ink-3);
+  padding: 2px 9px; border-radius: 999px; background: var(--fill);
+}
 .card-first {
   margin-top: 6px; color: var(--ink-2); font-size: 15px; letter-spacing: .08em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .empty { text-align: center; color: var(--ink-3); padding: 48px 0; }
+.filter-status + .empty { margin-top: 12px; }   /* 和作品清單的上緣對齊 */
 .footnote {
   margin: 32px auto 0; max-width: 40em; padding: 0 8px;
   font-size: 12px; line-height: 1.7; color: var(--ink-3); text-align: center;
@@ -269,7 +314,7 @@ button { font: inherit; color: inherit; }
 .poem-head { text-align: center; margin: 10px 0 0; }
 .poem-title {
   margin: 0; padding-left: .3em;
-  font-size: calc(var(--fs) + 11px); font-weight: 600; letter-spacing: .3em;
+  font-size: 31px; font-weight: 600; letter-spacing: .3em;   /* 固定大小，不隨原文字級改變 */
 }
 .poem-title small {
   display: block; margin-top: 6px; padding-left: .2em;
@@ -294,6 +339,9 @@ button { font: inherit; color: inherit; }
   border-radius: 30px;
 }
 .original .unit + .unit { margin-block-start: 12px; padding-block-start: 12px; border-block-start: 1px solid var(--divider); }
+/* 畫面外的段落先不排版（瀏覽器用估計高度佔位，捲到附近才排），長篇散文打開時只排看得到的部分，
+   換頁動畫才不會先停頓一下。直排時原文左右捲動，不套用 */
+.original:not(.vertical) .block { content-visibility: auto; contain-intrinsic-size: auto 480px; }
 .original .block + .block,
 .original .unit.is-preface + .block { margin-block-start: 22px; padding-block-start: 18px; border-block-start: 2px solid var(--divider); }   /* 換段、換片 */
 .original .unit-src {
@@ -344,6 +392,7 @@ button { font: inherit; color: inherit; }
 .term:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .term.active { color: var(--accent); background: var(--tint); text-decoration-color: var(--accent); }
 .hint { text-align: center; font-size: 12px; color: var(--ink-3); margin-bottom: 18px; }
+.hint span { display: inline-block; }   /* 畫面窄時在「；」後換行，不從句子中間斷開 */
 
 .section { margin-top: 12px; border-radius: 24px; overflow: hidden; }
 .section > summary {
@@ -382,7 +431,10 @@ button { font: inherit; color: inherit; }
 .pager .spacer { flex: 1; }
 
 /* ---------- 註釋面板（浮動玻璃） ---------- */
-.sheet-backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, .12); }
+.sheet-backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, .12); animation: dim-in .2s both; }
+.sheet-backdrop.leaving { animation: dim-out .2s both; }
+.sheet.leaving { animation: sink .2s ease-in both; }
+@keyframes sink { to { transform: translateY(40px) scale(.96); opacity: 0; } }
 .sheet {
   position: fixed; z-index: 31;
   left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px);
@@ -399,12 +451,84 @@ button { font: inherit; color: inherit; }
 .refs { margin: 0; padding-left: 1.2em; font-size: 15px; color: var(--ink-2); }
 .refs li + li { margin-top: 4px; }
 
+/* 提示訊息：像 iPhone 的動態島，從頂部標題膠囊的位置彈開成一顆膠囊，幾秒後縮回消失。
+   出現期間頂部的標題淡出（body.toasting），看起來像標題膠囊變成了提示 */
 .toast {
-  position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
-  bottom: calc(env(safe-area-inset-bottom) + 20px);
-  padding: 10px 20px; border-radius: 999px; font-size: 14px; font-weight: 500;
+  position: fixed; left: 50%; z-index: 40;
+  top: calc(env(safe-area-inset-top) + 8px);
+  height: 46px; line-height: 44px; padding: 0 24px; border-radius: 23px;
+  font-size: 15px; font-weight: 600; letter-spacing: .04em;
   background: var(--glass-strong);
-  max-width: calc(100% - 32px); white-space: nowrap;
+  max-width: calc(100% - 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transform: translateX(-50%);
+}
+.toast.in { animation: island-in .55s cubic-bezier(.3, 1.4, .45, 1) both; }
+.toast.in .toast-text { animation: toast-text-in .22s .14s both; }
+.toast.out { animation: island-out .32s cubic-bezier(.55, 0, .7, .25) both; }
+.toast.out .toast-text { animation: toast-text-out .12s both; }
+@keyframes island-in { from { transform: translateX(-50%) scale(.3, .75); opacity: 0; } 30% { opacity: 1; } }
+@keyframes island-out { 40% { opacity: 1; } to { transform: translateX(-50%) scale(.3, .75); opacity: 0; } }
+@keyframes toast-text-in { from { opacity: 0; } }
+@keyframes toast-text-out { to { opacity: 0; } }
+.topbar-title { transition: opacity .2s; }
+body.toasting .topbar-title { opacity: 0; }
+
+/* 換頁動畫（View Transitions，由 app.js 在點作品、返回、上下篇時啟動；html[data-nav] 是方向）
+   頂部列、右下角按鈕、狀態列色條各自獨立，換頁時留在原位淡入淡出，只有內容左右滑動。
+   比照 iPhone：進入時新頁從右邊滑入、舊頁往左退一點並變暗；返回時反過來。
+   開了「減少動態效果」時用瀏覽器預設的淡入淡出 */
+.topbar { view-transition-name: topbar; }
+.fab { view-transition-name: fab; }
+.toast { view-transition-name: toast; }   /* 換頁時提示膠囊留在頂部，不跟著內容滑走 */
+#statusbar-tint { view-transition-name: statusbar; }
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root), ::view-transition-new(root) {
+    animation-duration: .34s; animation-timing-function: cubic-bezier(.2, .8, .2, 1);
+  }
+  html[data-nav="push"]::view-transition-new(root) { animation-name: vt-in-from-right; }
+  html[data-nav="push"]::view-transition-old(root) { animation-name: vt-out-to-left; }
+  html[data-nav="pop"]::view-transition-new(root) { animation-name: vt-in-from-left; }
+  html[data-nav="pop"]::view-transition-old(root) { animation-name: vt-out-to-right; z-index: 1; }
+  /* 退到後面的那頁用「降低不透明度、露出黑底」變暗，只動 transform 與 opacity，全程由 GPU 合成，
+     不用 filter（filter 在部分瀏覽器每一幀都要重算整個畫面） */
+  ::view-transition-image-pair(root) { background: #000; }
+}
+@keyframes vt-in-from-right { from { transform: translateX(100%); } }
+@keyframes vt-out-to-left { to { transform: translateX(-28%); opacity: .82; } }
+@keyframes vt-in-from-left { from { transform: translateX(-28%); opacity: .82; } }
+@keyframes vt-out-to-right { to { transform: translateX(100%); } }
+
+/* 確認視窗：畫面中央的玻璃卡片，彈出、收起都有動畫 */
+.dialog-backdrop { position: fixed; inset: 0; z-index: 45; background: rgba(0, 0, 0, .3); animation: dim-in .2s both; }
+.dialog {
+  position: fixed; z-index: 46; left: 50%; top: 50%;
+  width: min(320px, calc(100vw - 32px)); padding: 24px 18px 18px; border-radius: 30px;
+  background: var(--glass-strong); text-align: center;
+  transform: translate(-50%, -50%);
+  animation: dialog-in .34s cubic-bezier(.3, 1.4, .5, 1) both;
+}
+.dialog.out { animation: dialog-out .18s ease-in both; }
+.dialog-backdrop.out { animation: dim-out .18s both; }
+@keyframes dialog-in { from { transform: translate(-50%, -50%) scale(1.12); opacity: 0; } }
+@keyframes dialog-out { to { transform: translate(-50%, -50%) scale(.94); opacity: 0; } }
+@keyframes dim-in { from { opacity: 0; } }
+@keyframes dim-out { to { opacity: 0; } }
+.dialog-title { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .06em; }
+.dialog-msg { margin: 8px 0 20px; font-size: 15px; line-height: 1.65; color: var(--ink-2); white-space: pre-line; text-wrap: balance; }   /* 訊息中的 \n 換行；小螢幕放不下時兩行平均分配 */
+.dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dialog-btn {
+  height: 46px; border: 0; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 16px; font-weight: 600; background: var(--fill); color: var(--ink);
+  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1);
+}
+.dialog-btn.danger { background: var(--accent); color: var(--accent-ink); }
+.dialog-btn:active { transform: scale(.94); }
+.dialog-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 開了「減少動態效果」：所有動畫與轉場都幾乎立即完成（換頁改用瀏覽器預設的淡入淡出，見上方 View Transitions） */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important;
+  }
 }
 
 /* 不支援模糊效果的瀏覽器：改用較不透明的底色，維持可讀性 */
@@ -417,21 +541,47 @@ button { font: inherit; color: inherit; }
 
 [hidden] { display: none !important; }
 
-/* 語譯開關：閱讀頁右下角的浮動玻璃按鈕 */
+/* 閱讀工具：閱讀頁右下角的浮動玻璃按鈕。點主按鈕往上展開書籤、已讀、語譯，再點一下收起。
+   離底部的距離：電腦 20px；iPhone 底部有主畫面指示條的安全區（約 34px），只再留 4px，按鈕才不會浮得太高 */
 .app.has-fab { padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }
-.trans-btn {
+.fab {
   position: fixed; z-index: 18;
   right: max(16px, calc((100vw - 720px) / 2 + 16px));
-  bottom: calc(env(safe-area-inset-bottom) + 20px);
-  width: 54px; height: 54px; border-radius: 50%; cursor: pointer;
+  bottom: max(20px, calc(env(safe-area-inset-bottom) + 4px));
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  pointer-events: none;   /* 收起時，按鈕上方的透明區域不擋住原文 */
+}
+.fab-items { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.fab:not(.open):not(.closing) .fab-items { display: none; }
+/* 展開：由下往上依序彈出（語譯→已讀→書籤）；收起：反過來由上往下依序縮回主按鈕，結束後才隱藏（closing 由 app.js 加上再移除）。
+   只有點主按鈕時才播（.toggling），打開作品時若選單本來就是展開的，直接顯示，不再彈一次 */
+.fab.toggling.open .fab-items .fab-btn { animation: fab-in .28s cubic-bezier(.3, 1.4, .5, 1) backwards; }
+.fab.toggling.open .fab-items .fab-btn:nth-child(2) { animation-delay: .03s; }
+.fab.toggling.open .fab-items .fab-btn:nth-child(1) { animation-delay: .06s; }
+.fab.closing .fab-items .fab-btn { animation: fab-out .2s cubic-bezier(.5, 0, .75, .3) forwards; pointer-events: none; }
+.fab.closing .fab-items .fab-btn:nth-child(2) { animation-delay: .03s; }
+.fab.closing .fab-items .fab-btn:nth-child(3) { animation-delay: .06s; }
+@keyframes fab-in { from { transform: translateY(16px) scale(.6); opacity: 0; } }
+@keyframes fab-out { to { transform: translateY(16px) scale(.6); opacity: 0; } }
+/* 主按鈕的圖示切換時轉一下（⋯ ↔ ×） */
+.fab.toggling .fab-main svg { animation: fab-ico .3s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes fab-ico { from { transform: rotate(-90deg) scale(.5); opacity: 0; } }
+.fab-btn {
+  position: relative; pointer-events: auto;
+  width: 48px; height: 48px; border-radius: 50%; cursor: pointer;
   display: grid; place-items: center;
-  font: inherit; font-size: 20px; font-weight: 700; color: var(--ink-2);
+  font: inherit; font-size: 18px; font-weight: 700; color: var(--ink-2);
   transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s;
 }
-.trans-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-.trans-btn:active { transform: scale(.88); }
-.trans-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.trans-btn[hidden] { display: none; }
+.fab-main { width: 54px; height: 54px; color: var(--ink); }
+.fab-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+#bookmarkBtn[aria-pressed="true"] path { fill: currentColor; }   /* 已加書籤：實心 */
+.fab-btn:active { transform: scale(.88); }
+.fab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* 主按鈕：收起時是「⋯」，展開時變「×」 */
+.fab-main .ico-close { display: none; }
+.fab.open .fab-main .ico-more { display: none; }
+.fab.open .fab-main .ico-close { display: block; }
 
 /* ---------- 按鈕提示：有滑鼠的裝置（電腦）移到按鈕上或用鍵盤選到時顯示；手機請看「使用說明」 ---------- */
 :where([data-tip]) { position: relative; }   /* :where 不增加優先順序，不會蓋掉按鈕原本的定位（例如固定在右下角的「譯」） */
@@ -450,6 +600,7 @@ button { font: inherit; color: inherit; }
   [data-tip-pos="below-left"]::after { top: calc(100% + 8px); bottom: auto; left: auto; right: 0; transform: none; }
   [data-tip-pos="below-right"]::after { top: calc(100% + 8px); bottom: auto; left: 0; transform: none; }
   [data-tip-pos="above-left"]::after { left: auto; right: 0; transform: none; }
+  [data-tip-pos="left"]::after { bottom: auto; top: 50%; left: auto; right: calc(100% + 10px); transform: translateY(-50%); }
 }
 
 /* ---------- 使用說明（從設定面板打開） ---------- */
