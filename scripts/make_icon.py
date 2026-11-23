@@ -17,6 +17,10 @@ import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 
+sys.stdout.reconfigure(encoding="utf-8")   # 和其他工具一樣，Windows 主控台也能正確顯示中文
+if len(sys.argv) < 5:
+    print(__doc__)
+    sys.exit(2)
 mock, lanting, outdir, preview = (Path(a) for a in sys.argv[1:5])
 STYLE = sys.argv[5] if len(sys.argv) > 5 else "seal"
 S = 1024

@@ -1,17 +1,18 @@
 """產生簡體版資料：把 public/data/poems.json 轉成簡體並把注音轉成拼音，輸出 public/data/poems.hans.json，
-另外產生介面文字用的字對照表 public/js/hans-ui.js。兩個檔案都是自動產生的，不要手動修改。
+另外產生介面文字用的字對照表 public/js/hans-ui.js，以及閱讀器排序用的朝代、體裁清單 public/js/terms.js
+（清單只在 scripts/poemdata.py 維護）。這三個檔案都是自動產生的，不要手動修改。
 
 用法（在專案資料夾執行）：
   python -I scripts/make_hans.py
 
 需要 OpenCC 的 Python 版本：pip install opencc-python-reimplemented
-新增或修改作品後要重新執行（網頁編輯器與 add_poem.py 儲存時會自動執行）。
+新增或修改作品後要重新執行（網頁編輯器與 add_poem.py 儲存時會自動執行）；修改 poemdata.py 的朝代、體裁清單後也要執行。
 
 轉換規則：
-- 簡體用 OpenCC 的 tw2s（臺灣正體 → 簡體），「著」會依詞語轉成「着」或保留「著」。
+- 簡體用 OpenCC 的 tw2s（臺灣繁體 → 簡體），「著」會依詞語轉成「着」或保留「著」。
 - 轉換後若變成 Unicode 擴充區的罕用字形（例如「輮」→「𫐓」，多數字型無法顯示），保留原字。
 - 註釋、創作背景、賞析、版本、作者介紹中，引號「」內的寫法若轉成簡體後會和同一篇中另一個不同的寫法變成一樣
-  （例如異文說明中的「遊」「游」），就保留正體，讀者才看得出各版本的差別。
+  （例如異文說明中的「遊」「游」），就保留繁體，讀者才看得出各版本的差別。
 - 注音轉成拼音（例如「ㄐㄩㄣ」→「jūn」）。讀音仍是教育部《重編國語辭典修訂本》的讀音。
 - 註釋的 term／in 依原文位置對應到簡體原文；轉換後若變得不唯一，自動補上 in，讓底線標在同一個地方。
 """
@@ -21,12 +22,15 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.stdout.reconfigure(encoding="utf-8")
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "public" / "data" / "poems.json"
-OUT = ROOT / "public" / "data" / "poems.hans.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import poemdata as D
+from poemdata import as_list, segments
+
+ROOT = D.ROOT
+OUT = D.HANS_DATA
 UI_OUT = ROOT / "public" / "js" / "hans-ui.js"
-UI_SOURCES = [ROOT / "public" / "index.html", ROOT / "public" / "js" / "app.js"]
+TERMS_OUT = ROOT / "public" / "js" / "terms.js"
+UI_SOURCES = [ROOT / "public" / "index.html", ROOT / "public" / "js" / "app.js", TERMS_OUT]
 
 try:
     import opencc
@@ -105,7 +109,7 @@ def zhuyin_to_pinyin(text):
     return SYL.sub(rep, text)
 
 
-# ---------- 正體 → 簡體 ----------
+# ---------- 繁體 → 簡體 ----------
 EXTRA = {"牠": "它"}   # OpenCC 沒有處理的臺灣用字
 _cc = None
 
@@ -123,7 +127,7 @@ def to_hans(text):
 
 
 def conv(text, keep=frozenset()):
-    """轉成簡體＋拼音；keep 中的寫法若出現在「」內就保留正體。"""
+    """轉成簡體＋拼音；keep 中的寫法若出現在「」內就保留繁體。"""
     if not keep:
         return to_hans(zhuyin_to_pinyin(text))
     parts = re.split(r"(「[^「」]+」)", text)
@@ -137,10 +141,6 @@ def keep_set(texts):
         for q in re.findall(r"「([^「」]+)」", t):
             by[to_hans(q)].add(q)
     return frozenset(q for qs in by.values() if len(qs) > 1 for q in qs)
-
-
-def as_list(v):
-    return v if isinstance(v, list) else [v]
 
 
 def conv_field(v, keep):
@@ -179,11 +179,6 @@ def mark(segs, notes, only=None):
             if found:
                 break
     return hits
-
-
-def segments(p):
-    segs = ([p["preface"][0]] if p.get("preface") else []) + ["".join(s[0] for s in b) for b in p["body"]]
-    return segs
 
 
 def unique_context(segs, si, at, length):
@@ -262,10 +257,19 @@ def convert_poem(p, problems):
     return h
 
 
+def write_terms():
+    """閱讀器的朝代、體裁排列順序（app.js 的 DYNASTY_ORDER、FORM_ORDER）。不需要 OpenCC，先寫出來。"""
+    terms = {"dynasties": D.DYNASTIES, "forms": D.FORMS}
+    TERMS_OUT.write_text("/* 自動產生（scripts/make_hans.py），不要手動修改：朝代與體裁的排列順序，清單在 scripts/poemdata.py */\n"
+                         "self.TERMS = " + json.dumps(terms, ensure_ascii=False, separators=(",", ":")) + ";\n",
+                         encoding="utf-8")
+
+
 def build():
+    write_terms()
     if opencc is None:
         raise RuntimeError("需要 OpenCC：pip install opencc-python-reimplemented")
-    d = json.loads(SRC.read_text(encoding="utf-8"))
+    d = D.read_json()
     problems = []
     authors = {}
     for k, a in d["authors"].items():
@@ -287,12 +291,12 @@ def build():
     for p, h in zip(d["poems"], poems):
         if t(p["form"]) != h["form"]:
             problems.append(f"體裁「{p['form']}」逐字轉換與資料不一致")
-    # 介面的逐字轉換也會掃過標題、目錄卡片等資料文字；對照表中的字不應出現在簡體資料中（引號內保留的正體除外）
+    # 介面的逐字轉換也會掃過標題、目錄卡片等資料文字；對照表中的字不應出現在簡體資料中（引號內保留的繁體除外）
     plain = re.sub(r"「[^「」]*」", "", OUT.read_text(encoding="utf-8"))
     for c in ui:
         if c in plain:
             problems.append(f"介面對照表的「{c}」也出現在簡體資料中，介面轉換可能改到作品內容")
-    UI_OUT.write_text("/* 自動產生（scripts/make_hans.py），不要手動修改：介面文字的正體→簡體逐字對照 */\n"
+    UI_OUT.write_text("/* 自動產生（scripts/make_hans.py），不要手動修改：介面文字的繁體→簡體逐字對照 */\n"
                       "self.HANS_UI = " + json.dumps(ui, ensure_ascii=False, separators=(",", ":")) + ";\n",
                       encoding="utf-8")
     return len(poems), sorted(set(problems))
@@ -306,7 +310,7 @@ def main():
         sys.exit(1)
     for x in problems:
         print("問題", x)
-    print(f"已產生簡體版：{n} 篇 → {OUT.relative_to(ROOT)}、{UI_OUT.relative_to(ROOT)}；問題 {len(problems)} 項")
+    print(f"已產生簡體版：{n} 篇 → {OUT.relative_to(ROOT)}、{UI_OUT.relative_to(ROOT)}、{TERMS_OUT.relative_to(ROOT)}；問題 {len(problems)} 項")
     if problems:
         sys.exit(1)
 

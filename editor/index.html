@@ -40,10 +40,7 @@
             <label>標題<input id="f-title" class="input" placeholder="例如：陋室銘；詞寫成「詞牌・題目」"></label>
             <label>代號<input id="f-id" class="input" placeholder="網址用，小寫英文、數字與 -，例如 loushiming"></label>
             <label>類型
-              <select id="f-type" class="input">
-                <option value="verse">詩詞</option>
-                <option value="prose">散文</option>
-              </select>
+              <select id="f-type" class="input"></select>
             </label>
             <label>體裁<select id="f-form" class="input"></select></label>
             <label>主題<input id="f-tags" class="input" placeholder="2–3 個，用頓號分隔，例如：品德、隱逸"></label>
@@ -120,8 +117,8 @@
       <button type="button" class="btn danger" id="deleteBtn" hidden data-tip="從資料中刪除這篇作品（會先確認並備份）">刪除作品</button>
       <button type="button" class="btn" id="exportBtn" hidden data-tip="把這篇匯出成文字稿件，可以複製或下載保存">匯出稿件</button>
       <button type="button" class="btn" id="previewBtn" hidden data-tip="在新分頁打開網站中的這一篇（看的是已儲存的內容）">預覽</button>
-      <button type="button" class="btn" id="checkBtn" data-tip-pos="above-left" data-tip="只檢查，不儲存：列出錯誤與提醒">檢查</button>
-      <button type="button" class="btn primary" id="saveBtn" data-tip-pos="above-left" data-tip="檢查沒有錯誤後寫入資料（會先備份）">儲存</button>
+      <button type="button" class="btn" id="checkBtn" data-tip-pos="left" data-tip="只檢查，不儲存：列出錯誤與提醒">檢查</button>
+      <button type="button" class="btn primary" id="saveBtn" data-tip-pos="left" data-tip="檢查沒有錯誤後寫入資料（會先備份）">儲存</button>
     </div>
   </footer>
 
@@ -133,7 +130,6 @@
       <div class="dlg-actions" id="dlgActions"></div>
     </form>
   </dialog>
-
 
   <dialog id="helpDlg" class="help">
     <form method="dialog" class="dlg-body">
@@ -202,9 +198,10 @@
           <dt>狀態標籤</dt><dd>
             <span class="tag ok">找到</span> 會在原文標底線；
             <span class="tag warn">只在題目</span> 會標在標題上；
-            <span class="tag warn">出現多次</span> 建議填前後文；
-            <span class="tag err">找不到</span> 請檢查用字。滑鼠移到標籤上可以看詳細說明。</dd>
-          <dt>↑ ✕</dt><dd>往上移、刪除這則註釋。註釋建議依原文出現的順序排列。</dd>
+            <span class="tag hint">出現多次</span> 建議填前後文；
+            <span class="tag err">找不到</span> 請檢查用字；
+            <span class="tag err">未填解釋</span> 請補上解釋。紅色的標籤會擋下儲存，判斷規則和「檢查」相同。滑鼠移到標籤上可以看詳細說明。</dd>
+          <dt>↑ ↓ ✕</dt><dd>往上移、往下移、刪除這則註釋。註釋建議依原文出現的順序排列。</dd>
         </dl>
 
         <h3>創作背景、版本、賞析、參考資料</h3>
@@ -227,7 +224,7 @@
         <ul>
           <li>滑鼠移到任何按鈕上，都會出現簡短說明。</li>
           <li>還沒儲存就切換作品或關閉頁面時，會先詢問。</li>
-          <li>每次儲存、刪除或調整順序後，會自動更新網站的簡體版資料（需要先安裝 OpenCC：<code>pip install opencc-python-reimplemented</code>；沒有安裝時，執行編輯器的視窗會出現提醒）。</li>
+          <li>每次儲存、刪除或調整順序後，會自動更新網站的簡體版資料（需要先安裝 OpenCC：<code>pip install opencc-python-reimplemented</code>；沒有安裝時，儲存後的訊息會提醒）。</li>
           <li>不小心存錯了，可以從 <code>.backup/</code> 找回之前的版本，把它複製回 <code>public/data/poems.json</code>。</li>
         </ul>
       </div>

@@ -15,8 +15,9 @@
 
   /* 文字 */
   --ink: #000;
-  --ink-2: rgba(60, 60, 67, .78);
-  --ink-3: rgba(60, 60, 67, .55);
+  /* 灰字在白色區塊與淺灰背景上都至少 4.5:1（小字的建議對比）：ink-3 約 4.7–5.0，ink-2 約 6.6–7.1，兩者仍有深淺之分 */
+  --ink-2: rgba(60, 60, 67, .86);
+  --ink-3: rgba(60, 60, 67, .74);
   --accent: #b2412c;
   --accent-ink: #fff;
 
@@ -29,6 +30,13 @@
   --blur: blur(24px) saturate(180%);
   --divider: rgba(60, 60, 67, .14);
   --tint: rgba(178, 65, 44, .12);
+
+  /* 動態（淺色、深色共用）：按下時縮小的比例，與兩種彈性曲線 */
+  --press-round: .88;   /* 圓形按鈕：頂部按鈕、右下角閱讀工具 */
+  --press-pill: .94;    /* 膠囊按鈕：分段按鈕、篩選、頁碼、確認視窗 */
+  --press-card: .97;    /* 大塊的卡片：目錄卡片、上一篇／下一篇 */
+  --spring: cubic-bezier(.3, 1.6, .5, 1);        /* 按鈕按下、放開的回彈 */
+  --spring-soft: cubic-bezier(.3, 1.4, .5, 1);   /* 面板彈出、卡片 */
   color-scheme: light;
 }
 
@@ -90,6 +98,17 @@ button { font: inherit; color: inherit; }
   box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
 }
 
+/* ---------- 共用的互動狀態：按下縮小、鍵盤焦點框、選取時的實心主色 ---------- */
+.icon-btn:active, .fab-btn:active { transform: scale(var(--press-round)); }
+.seg button:active:not(:disabled), .filter:active, .page-btn:active:not([disabled]), .dialog-btn:active { transform: scale(var(--press-pill)); }
+.card:active, .pager a:active { transform: scale(var(--press-card)); }
+.filter:focus-visible, .page-btn:focus-visible, .term:focus-visible, .dialog-btn:focus-visible, .fab-btn:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.seg button.on, .filter.on, .page-btn.on, .dialog-btn.danger, .fab-btn[aria-pressed="true"] {
+  background: var(--accent); color: var(--accent-ink);
+}
+
 /* ---------- 頂部浮動列 ---------- */
 .topbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
@@ -108,9 +127,8 @@ button { font: inherit; color: inherit; }
 .icon-btn {
   width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center; cursor: pointer; color: var(--ink);
-  transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), background .2s;
+  transition: transform .25s var(--spring), background .2s;
 }
-.icon-btn:active { transform: scale(.88); }
 #backBtn[hidden] { display: grid !important; visibility: hidden; }
 .topbar-title {
   justify-self: center; margin: 0; max-width: 100%;
@@ -132,10 +150,11 @@ button { font: inherit; color: inherit; }
   padding: 8px 18px; border-radius: 26px;
   background: var(--glass-strong);
   transform-origin: top right;
-  animation: pop .32s cubic-bezier(.3, 1.4, .5, 1);
+  animation: pop .32s var(--spring-soft);
 }
 @keyframes pop { from { transform: scale(.85); opacity: .4; } }
-/* 浮動面板收起時的動畫（app.js 的 hidePanel 加上 .leaving，播完才隱藏）：設定面板、篩選選單縮回，註釋與說明面板往下沉 */
+/* 浮動元件收起時的動畫（app.js 的 hidePanel 加上 .leaving，播完才隱藏）：設定面板、篩選選單縮回，
+   註釋與說明面板往下沉；提示膠囊、確認視窗與遮罩的收起動畫寫在各自的區塊 */
 .leaving { pointer-events: none; }
 .settings.leaving, .menu.leaving { animation: pop-out .16s ease-in both; }
 @keyframes pop-out { to { transform: scale(.9); opacity: 0; } }
@@ -150,8 +169,9 @@ button { font: inherit; color: inherit; }
   min-width: 54px; padding: 5px 14px; border-radius: 999px; font-size: 14px;
   transition: background .25s, color .25s, transform .2s;
 }
-.seg button:active:not(:disabled) { transform: scale(.92); }
 .seg button:disabled { opacity: .3; cursor: default; }
+/* 切換繁簡、資料還在載入時（aria-busy）：兩顆按鈕變淡、不能按，載好後恢復 */
+.seg[aria-busy="true"] button { opacity: .45; pointer-events: none; transition: opacity .2s; }
 /* 字級拖拉條：左右兩端的小「A」、大「A」示意大小；已拖過的一段塗上主色（--p 由 app.js 設定） */
 .font-slider { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 210px; margin-left: 16px; }
 .font-slider .a-small { font-size: 13px; color: var(--ink-2); }
@@ -177,7 +197,7 @@ button { font: inherit; color: inherit; }
   background: #fff; border: 0; box-shadow: 0 2px 6px rgba(0,0,0,.22), 0 0 0 .5px rgba(0,0,0,.06);
 }
 .font-range:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
-.seg button.on { background: var(--accent); color: var(--accent-ink); box-shadow: 0 2px 8px rgba(178, 65, 44, .35); }
+.seg button.on { box-shadow: 0 2px 8px rgba(178, 65, 44, .35); }
 .switch { position: relative; width: 52px; height: 32px; flex: none; }
 .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
 .switch span {
@@ -219,14 +239,11 @@ button { font: inherit; color: inherit; }
 .filter {
   display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; cursor: pointer; color: var(--ink-2);
   padding: 7px 14px 7px 16px; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 500;
-  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s;
+  transition: transform .2s var(--spring), background .2s, color .2s;
 }
-.filter:active { transform: scale(.94); }
-.filter.on { background: var(--accent); color: var(--accent-ink); }
 .filter span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .filter svg { opacity: .7; flex: none; transition: transform .25s; }
 .filter[aria-expanded="true"] svg { transform: rotate(180deg); }
-.filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* 篩選選單（浮動玻璃） */
 .menu {
@@ -234,7 +251,7 @@ button { font: inherit; color: inherit; }
   min-width: 200px; max-width: calc(100vw - 32px); max-height: min(60vh, 420px); overflow-y: auto;
   padding: 6px; border-radius: 22px;
   background: var(--glass-strong);
-  animation: pop .28s cubic-bezier(.3, 1.4, .5, 1);
+  animation: pop .28s var(--spring-soft);
   overscroll-behavior: contain;
 }
 .menu-item {
@@ -271,19 +288,15 @@ button { font: inherit; color: inherit; }
   display: inline-grid; place-items: center;
   background: var(--fill); color: var(--ink-2); font: inherit; font-size: 15px; font-weight: 600;
   font-variant-numeric: tabular-nums;
-  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s;
+  transition: transform .2s var(--spring), background .2s, color .2s;
 }
-.page-btn:active:not([disabled]) { transform: scale(.92); }
-.page-btn.on { background: var(--accent); color: var(--accent-ink); }
 .page-btn[disabled] { opacity: .35; cursor: default; }
-.page-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .page-gap { min-width: 20px; text-align: center; color: var(--ink-3); }
 .card {
   display: block; text-decoration: none; color: inherit;
   padding: 16px 20px; border-radius: 26px;
-  transition: transform .3s cubic-bezier(.3, 1.4, .5, 1);
+  transition: transform .3s var(--spring-soft);
 }
-.card:active { transform: scale(.97); }
 .card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .card-title { font-size: 21px; font-weight: 600; letter-spacing: .08em; }
 .card-meta { font-size: 13px; color: var(--ink-3); }
@@ -342,6 +355,7 @@ button { font: inherit; color: inherit; }
 /* 畫面外的段落先不排版（瀏覽器用估計高度佔位，捲到附近才排），長篇散文打開時只排看得到的部分，
    換頁動畫才不會先停頓一下。直排時原文左右捲動，不套用 */
 .original:not(.vertical) .block { content-visibility: auto; contain-intrinsic-size: auto 480px; }
+.original.layout-all .block { content-visibility: visible; }   /* 切換正簡、橫直排後定位用，見 app.js 的 fullLayout */
 .original .block + .block,
 .original .unit.is-preface + .block { margin-block-start: 22px; padding-block-start: 18px; border-block-start: 2px solid var(--divider); }   /* 換段、換片 */
 .original .unit-src {
@@ -389,7 +403,6 @@ button { font: inherit; color: inherit; }
   text-decoration-thickness: 2px; text-underline-offset: .34em;
   transition: background .2s, color .2s;
 }
-.term:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .term.active { color: var(--accent); background: var(--tint); text-decoration-color: var(--accent); }
 .hint { text-align: center; font-size: 12px; color: var(--ink-3); margin-bottom: 18px; }
 .hint span { display: inline-block; }   /* 畫面窄時在「；」後換行，不從句子中間斷開 */
@@ -409,7 +422,7 @@ button { font: inherit; color: inherit; }
   content: ""; margin-left: auto; width: 8px; height: 8px;
   border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3);
   transform: rotate(45deg) translateY(-2px);
-  transition: transform .3s cubic-bezier(.3, 1.4, .5, 1);
+  transition: transform .3s var(--spring-soft);
 }
 .section[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
 .section-body { padding: 0 20px 18px; font-size: 16px; line-height: 1.85; }
@@ -423,9 +436,8 @@ button { font: inherit; color: inherit; }
 .pager a {
   flex: 1; text-decoration: none; color: var(--ink-3); font-size: 13px;
   padding: 12px 18px; border-radius: 22px;
-  transition: transform .3s cubic-bezier(.3, 1.4, .5, 1);
+  transition: transform .3s var(--spring-soft);
 }
-.pager a:active { transform: scale(.96); }
 .pager a.next { text-align: right; }
 .pager a span { display: block; color: var(--ink); font-size: 16px; font-weight: 600; letter-spacing: .06em; }
 .pager .spacer { flex: 1; }
@@ -445,6 +457,14 @@ button { font: inherit; color: inherit; }
 }
 @keyframes rise { from { transform: translateY(40px) scale(.96); } }
 .sheet-grip { width: 38px; height: 5px; border-radius: 3px; background: var(--ink-3); opacity: .5; margin: 0 auto 14px; }
+/* 面板拖拉（app.js 的 makeDraggable）：頂部橫條表示可以拖。往下拉關閉，往上拉放開後彈回。
+   放開後用轉場彈回或滑出；拖的時候（.dragging）面板直接跟著手指，不加轉場 */
+.sheet { transition: transform .32s cubic-bezier(.3, 1.2, .5, 1); }
+.sheet.dragging { transition: none; user-select: none; -webkit-user-select: none; }
+#sheet, .sheet-drag-zone { touch-action: none; }   /* 這些地方的上下滑動交給拖拉處理，不捲動頁面 */
+.sheet-drag-zone { flex: none; cursor: grab; }
+.sheet.dragging .sheet-drag-zone { cursor: grabbing; }
+.sheet-backdrop.fading { transition: filter .22s; }
 .sheet-term { font-size: 26px; font-weight: 600; color: var(--accent); letter-spacing: .12em; }
 .sheet-note { margin-top: 6px; font-size: 16px; line-height: 1.8; }
 /* 參考資料：每筆一行，字小一點 */
@@ -464,23 +484,31 @@ button { font: inherit; color: inherit; }
 }
 .toast.in { animation: island-in .55s cubic-bezier(.3, 1.4, .45, 1) both; }
 .toast.in .toast-text { animation: toast-text-in .22s .14s both; }
-.toast.out { animation: island-out .32s cubic-bezier(.55, 0, .7, .25) both; }
-.toast.out .toast-text { animation: toast-text-out .12s both; }
+.toast.leaving { animation: island-out .32s cubic-bezier(.55, 0, .7, .25) both; }
+.toast.leaving .toast-text { animation: toast-text-out .12s both; }
 @keyframes island-in { from { transform: translateX(-50%) scale(.3, .75); opacity: 0; } 30% { opacity: 1; } }
 @keyframes island-out { 40% { opacity: 1; } to { transform: translateX(-50%) scale(.3, .75); opacity: 0; } }
 @keyframes toast-text-in { from { opacity: 0; } }
+/* 「切換中…」前面的轉圈圖示 */
+.toast-spin {
+  display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px;
+  border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent;
+  animation: toast-spin .8s linear infinite;
+}
+@keyframes toast-spin { to { transform: rotate(360deg); } }
 @keyframes toast-text-out { to { opacity: 0; } }
 .topbar-title { transition: opacity .2s; }
 body.toasting .topbar-title { opacity: 0; }
 
 /* 換頁動畫（View Transitions，由 app.js 在點作品、返回、上下篇時啟動；html[data-nav] 是方向）
-   頂部列、右下角按鈕、狀態列色條各自獨立，換頁時留在原位淡入淡出，只有內容左右滑動。
+   頂部列、右下角按鈕、提示膠囊各自獨立，換頁時留在原位淡入淡出，只有內容左右滑動。
    比照 iPhone：進入時新頁從右邊滑入、舊頁往左退一點並變暗；返回時反過來。
-   開了「減少動態效果」時用瀏覽器預設的淡入淡出 */
-.topbar { view-transition-name: topbar; }
-.fab { view-transition-name: fab; }
-.toast { view-transition-name: toast; }   /* 換頁時提示膠囊留在頂部，不跟著內容滑走 */
-#statusbar-tint { view-transition-name: statusbar; }
+   開了「減少動態效果」時用瀏覽器預設的淡入淡出。
+   view-transition-name 只在換頁期間（html[data-nav]）加上：平時加著會讓這些元素各自成為獨立圖層，
+   iPhone 主畫面 App 的狀態列就讀不到最上方 #statusbar-tint 的底色，改用系統的模糊效果。#statusbar-tint 不另外命名 */
+html[data-nav] .topbar { view-transition-name: topbar; }
+html[data-nav] .fab { view-transition-name: fab; }
+html[data-nav] .toast { view-transition-name: toast; }   /* 換頁時提示膠囊留在頂部，不跟著內容滑走 */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root), ::view-transition-new(root) {
     animation-duration: .34s; animation-timing-function: cubic-bezier(.2, .8, .2, 1);
@@ -505,10 +533,10 @@ body.toasting .topbar-title { opacity: 0; }
   width: min(320px, calc(100vw - 32px)); padding: 24px 18px 18px; border-radius: 30px;
   background: var(--glass-strong); text-align: center;
   transform: translate(-50%, -50%);
-  animation: dialog-in .34s cubic-bezier(.3, 1.4, .5, 1) both;
+  animation: dialog-in .34s var(--spring-soft) both;
 }
-.dialog.out { animation: dialog-out .18s ease-in both; }
-.dialog-backdrop.out { animation: dim-out .18s both; }
+.dialog.leaving { animation: dialog-out .18s ease-in both; }
+.dialog-backdrop.leaving { animation: dim-out .18s both; }
 @keyframes dialog-in { from { transform: translate(-50%, -50%) scale(1.12); opacity: 0; } }
 @keyframes dialog-out { to { transform: translate(-50%, -50%) scale(.94); opacity: 0; } }
 @keyframes dim-in { from { opacity: 0; } }
@@ -519,11 +547,8 @@ body.toasting .topbar-title { opacity: 0; }
 .dialog-btn {
   height: 46px; border: 0; border-radius: 999px; cursor: pointer;
   font: inherit; font-size: 16px; font-weight: 600; background: var(--fill); color: var(--ink);
-  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1);
+  transition: transform .2s var(--spring);
 }
-.dialog-btn.danger { background: var(--accent); color: var(--accent-ink); }
-.dialog-btn:active { transform: scale(.94); }
-.dialog-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* 開了「減少動態效果」：所有動畫與轉場都幾乎立即完成（換頁改用瀏覽器預設的淡入淡出，見上方 View Transitions） */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -555,7 +580,7 @@ body.toasting .topbar-title { opacity: 0; }
 .fab:not(.open):not(.closing) .fab-items { display: none; }
 /* 展開：由下往上依序彈出（語譯→已讀→書籤）；收起：反過來由上往下依序縮回主按鈕，結束後才隱藏（closing 由 app.js 加上再移除）。
    只有點主按鈕時才播（.toggling），打開作品時若選單本來就是展開的，直接顯示，不再彈一次 */
-.fab.toggling.open .fab-items .fab-btn { animation: fab-in .28s cubic-bezier(.3, 1.4, .5, 1) backwards; }
+.fab.toggling.open .fab-items .fab-btn { animation: fab-in .28s var(--spring-soft) backwards; }
 .fab.toggling.open .fab-items .fab-btn:nth-child(2) { animation-delay: .03s; }
 .fab.toggling.open .fab-items .fab-btn:nth-child(1) { animation-delay: .06s; }
 .fab.closing .fab-items .fab-btn { animation: fab-out .2s cubic-bezier(.5, 0, .75, .3) forwards; pointer-events: none; }
@@ -564,20 +589,19 @@ body.toasting .topbar-title { opacity: 0; }
 @keyframes fab-in { from { transform: translateY(16px) scale(.6); opacity: 0; } }
 @keyframes fab-out { to { transform: translateY(16px) scale(.6); opacity: 0; } }
 /* 主按鈕的圖示切換時轉一下（⋯ ↔ ×） */
-.fab.toggling .fab-main svg { animation: fab-ico .3s cubic-bezier(.3, 1.4, .5, 1); }
+.fab.toggling .fab-main svg { animation: fab-ico .3s var(--spring-soft); }
 @keyframes fab-ico { from { transform: rotate(-90deg) scale(.5); opacity: 0; } }
 .fab-btn {
   position: relative; pointer-events: auto;
   width: 48px; height: 48px; border-radius: 50%; cursor: pointer;
   display: grid; place-items: center;
   font: inherit; font-size: 18px; font-weight: 700; color: var(--ink-2);
-  transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s;
+  transition: transform .25s var(--spring), background .2s, color .2s;
 }
 .fab-main { width: 54px; height: 54px; color: var(--ink); }
-.fab-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+/* 開啟時是實心主色：拿掉玻璃的上緣白色高光，否則淺色模式會在紅底上方出現一道白色圓弧 */
+.fab-btn[aria-pressed="true"] { border-color: transparent; box-shadow: var(--glass-shadow); }
 #bookmarkBtn[aria-pressed="true"] path { fill: currentColor; }   /* 已加書籤：實心 */
-.fab-btn:active { transform: scale(.88); }
-.fab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 /* 主按鈕：收起時是「⋯」，展開時變「×」 */
 .fab-main .ico-close { display: none; }
 .fab.open .fab-main .ico-more { display: none; }

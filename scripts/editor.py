@@ -15,24 +15,21 @@
   /site/       網站本身（public/ 資料夾），用來預覽
   /api/...     讀寫資料
 """
-import importlib.util
 import json
 import mimetypes
+import re
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-sys.stdout.reconfigure(encoding="utf-8")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import poemdata as D
+import validate_poems as V
+import add_poem as A
 
-ROOT = Path(__file__).resolve().parent.parent
-EDITOR = ROOT / "editor"
-SITE = ROOT / "public"
-
-_spec = importlib.util.spec_from_file_location("add_poem", Path(__file__).with_name("add_poem.py"))
-A = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(A)
-V = A.V
+EDITOR = D.ROOT / "editor"
+SITE = D.ROOT / "public"
 
 PORT = 8770
 if "--port" in sys.argv:
@@ -40,24 +37,24 @@ if "--port" in sys.argv:
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
 
 
-def load():
-    return json.loads(A.DATA.read_text(encoding="utf-8"))
+def form_record(body):
+    """編輯器送來的是表單上的原始文字（fields）；整理成資料的方式和稿件工具相同（poemdata.make_record）。"""
+    poem, author = D.make_record(body.get("fields") or {})
+    return poem, author or {}
 
 
 def check_payload(body, data):
     """回傳 (poem, author_id, author, errors, warnings)。author 為要寫入的作者資料（新增或修改）。"""
-    poem = body.get("poem") or {}
-    author = body.get("author") or {}
-    aid = (author.get("id") or poem.get("author") or "").strip()
-    poem["author"] = aid
-    rec = {k: author[k] for k in ("name", "dynasty", "years", "intro") if k in author}
-    if author.get("kind") == "source":
-        rec["kind"] = "source"
+    try:
+        poem, rec = form_record(body)
+    except Exception as ex:   # 表單結構不完整時，回報而不是讓伺服器出錯
+        return {}, "", {}, [f"資料格式有誤：{ex}"], []
+    aid = poem["author"]
     errs = []
     if not aid:
         errs.append("請選擇作者，或填寫新作者的代號")
-    elif not rec.get("name"):
-        errs.append("作者名稱不能空白")
+    elif not V.AUTHOR_ID_RE.fullmatch(aid):
+        errs.append(f"作者代號只能用英文小寫與數字：{aid}")
     orig = body.get("originalId") or None
     ids = [p["id"] for p in data["poems"]]
     if poem.get("id") in ids and poem.get("id") != orig:
@@ -74,19 +71,59 @@ def check_payload(body, data):
         e, w = [str(ex)], []
     except Exception as ex:   # 表單結構不完整時，回報而不是讓伺服器出錯
         e, w = [f"資料格式有誤：{ex}"], []
-    if rec:
-        e2 = []
-        V.check_chars("作者", rec.get("name", "") + json.dumps(rec.get("intro", ""), ensure_ascii=False), e2)
-        if rec.get("dynasty") not in V.DYNASTIES:
-            e2.append(f"作者朝代不在清單：{rec.get('dynasty')}")
-        if not rec.get("years"):
-            e2.append("作者生卒年不能空白（不詳請寫「生卒年不詳」）")
-        if not rec.get("intro"):
-            e2.append("作者介紹不能空白")
-        e += e2
+    if aid:
+        e += V.check_author(rec)   # 作者資料以表單內容為準（和資料檢查、稿件工具同一套規則）
     # 編輯器中只有一篇作品，去掉驗證訊息前面的「[稿件] 代號 標題:」
     strip = lambda m: m.split(": ", 1)[1] if m.startswith("[稿件] ") and ": " in m else m
     return poem, aid, rec, errs + [strip(x) for x in e], [strip(x) for x in w]
+
+
+def note_statuses(body):
+    """表單上每一列註釋的狀態（包含還沒填的空白列），規則和儲存時的檢查相同（validate_poems.note_status）。"""
+    poem, _ = form_record(body)
+    full = D.full_text(poem)
+    rows = (body.get("fields") or {}).get("notes") or []
+    return [V.note_status({k: (n.get(k) or "").strip() for k in ("term", "in", "note")}, full, poem["title"]) for n in rows]
+
+
+# ---------- 快速貼上：把整篇原文與整篇語譯切成逐句的配對 ----------
+SENTENCE = re.compile(r"[^。！？]*[。！？]+[」』]*|[^。！？]+$")
+SENTENCE_END = re.compile(r"[。！？][」』]*$")
+
+
+def split_source(text, verse):
+    """詩詞依行切，到句號、問號、驚嘆號才算一句（同一句的幾行保留分行）；散文依標點切句。空行代表換段。"""
+    blocks = []
+    for block in re.split(r"\n\s*\n", text):
+        if verse:
+            sents, cur = [], []
+            for line in filter(None, (s.strip() for s in block.split("\n"))):
+                cur.append(line)
+                if SENTENCE_END.search(line):
+                    sents.append("\n".join(cur)); cur = []
+            if cur:
+                sents.append("\n".join(cur))
+        else:
+            sents = SENTENCE.findall(re.sub(r"\s+", "", block))
+        if sents:
+            blocks.append(sents)
+    return blocks
+
+
+def paste_pairs(source, translation, verse):
+    """依順序把原文各句配上語譯；語譯多出來的放在最後一段的最後。回傳 (各段的配對, 句數統計)。"""
+    src = split_source(source, verse)
+    trs = [SENTENCE.findall(p) for p in D.paragraphs(translation)]
+    flat = [t for p in trs for t in p]
+    k, blocks = 0, []
+    for b in src:
+        blocks.append([[s, flat[k + i] if k + i < len(flat) else ""] for i, s in enumerate(b)])
+        k += len(b)
+    if blocks and k < len(flat):
+        blocks[-1].append(["", "".join(flat[k:])])
+    counts = {"srcBlocks": len(src), "srcSentences": sum(map(len, src)),
+              "trBlocks": len(trs), "trSentences": len(flat)}
+    return blocks, counts
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -108,6 +145,12 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _saved(self, data, **extra):
+        """寫入資料（備份、更新簡體版）並回報結果；簡體版的訊息也一併傳回編輯器顯示。"""
+        backup, hans = D.save(data)
+        print(hans)
+        self._send(200, {"ok": True, "backup": str(backup.relative_to(D.ROOT)), "hans": hans, **extra})
+
     def _static(self, base, rel):
         path = (base / unquote(rel or "index.html")).resolve()
         if base.resolve() not in path.parents and path != base.resolve():
@@ -126,11 +169,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(403, {"error": "只接受本機連線"})
         url = urlparse(self.path)
         if url.path == "/api/data":
-            return self._send(200, {"data": load(), "dynasties": V.DYNASTIES, "forms": V.FORMS})
+            return self._send(200, {"data": D.read_json(), "dynasties": D.DYNASTIES, "forms": D.FORMS, "types": D.TYPES})
         if url.path == "/api/export":
             pid = parse_qs(url.query).get("id", [""])[0]
             try:
-                return self._send(200, {"text": A.export(pid, load())})
+                return self._send(200, {"text": A.export(pid, D.read_json())})
             except A.DraftError as e:
                 return self._send(400, {"error": str(e)})
         if url.path.startswith("/site"):
@@ -151,25 +194,30 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return self._send(400, {"error": "無法解析的請求"})
         path = urlparse(self.path).path
-        data = load()
+        data = D.read_json()
 
         if path == "/api/check":
             _, _, _, errs, warns = check_payload(body, data)
             return self._send(200, {"errors": errs, "warnings": warns})
 
+        if path == "/api/notes":
+            try:
+                return self._send(200, {"ok": True, "statuses": note_statuses(body)})
+            except Exception as ex:
+                return self._send(200, {"ok": False, "errors": [f"資料格式有誤：{ex}"]})
+
+        if path == "/api/split":
+            blocks, counts = paste_pairs(body.get("source", ""), body.get("translation", ""), body.get("verse", True))
+            return self._send(200, {"ok": True, "blocks": blocks, **counts})
+
         if path == "/api/save":
             poem, aid, rec, errs, warns = check_payload(body, data)
             if errs:
                 return self._send(200, {"ok": False, "errors": errs, "warnings": warns})
+            # 編輯器的作者欄位一律寫回（修改作者資料會套用到這位作者的所有作品）；稿件工具則只新增新作者
             data["authors"][aid] = rec
-            orig = body.get("originalId")
-            if orig:
-                i = next(i for i, p in enumerate(data["poems"]) if p["id"] == orig)
-                data["poems"][i] = poem
-            else:
-                data["poems"].insert(A.insert_position(data, rec["dynasty"]), poem)
-            bak = A.save(data)
-            return self._send(200, {"ok": True, "warnings": warns, "backup": str(bak.relative_to(ROOT))})
+            D.upsert_poem(data, poem, body.get("originalId"), rec["dynasty"])
+            return self._saved(data, warnings=warns, id=poem["id"])
 
         if path == "/api/delete":
             pid = body.get("id")
@@ -180,8 +228,7 @@ class Handler(BaseHTTPRequestHandler):
             used = {p["author"] for p in data["poems"]}
             removed = [a["name"] for k, a in data["authors"].items() if k not in used]
             data["authors"] = {k: a for k, a in data["authors"].items() if k in used}
-            bak = A.save(data)
-            return self._send(200, {"ok": True, "removedAuthors": removed, "backup": str(bak.relative_to(ROOT))})
+            return self._saved(data, removedAuthors=removed)
 
         if path == "/api/reorder":
             # order：全部作品代號的新順序。閱讀器依朝代先後排列，同朝代內依這個順序
@@ -190,11 +237,10 @@ class Handler(BaseHTTPRequestHandler):
             if sorted(order) != sorted(ids) or len(set(order)) != len(order):
                 return self._send(200, {"ok": False, "errors": ["作品清單已有變動，請重新整理編輯器後再調整順序"]})
             by = {p["id"]: p for p in data["poems"]}
-            if [p["id"] for p in data["poems"]] == order:
+            if ids == order:
                 return self._send(200, {"ok": True, "unchanged": True})
             data["poems"] = [by[i] for i in order]
-            bak = A.save(data)
-            return self._send(200, {"ok": True, "backup": str(bak.relative_to(ROOT))})
+            return self._saved(data)
 
         if path == "/api/import":
             try:

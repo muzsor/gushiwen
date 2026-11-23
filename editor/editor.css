@@ -1,15 +1,15 @@
 :root {
   --font: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei UI", "Microsoft JhengHei", sans-serif;
   --bg: #f2f2f7; --card: #fff; --fill: rgba(118, 118, 128, .12);
-  --ink: #000; --ink-2: rgba(60, 60, 67, .78); --ink-3: rgba(60, 60, 67, .55);
+  --ink: #000; --ink-2: rgba(60, 60, 67, .86); --ink-3: rgba(60, 60, 67, .74);   /* 和網站相同：灰字至少 4.5:1 */
   --line: rgba(60, 60, 67, .18); --accent: #b2412c; --accent-ink: #fff;
   --ok: #248a3d; --warn: #b25f00; --err: #c4281c; --tint: rgba(178, 65, 44, .1);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #000; --card: #1c1c1e; --fill: rgba(118, 118, 128, .24);
-    --ink: #fff; --ink-2: rgba(235, 235, 245, .72); --ink-3: rgba(235, 235, 245, .5);
+    --bg: #000; --card: #242426; --fill: rgba(118, 118, 128, .24);   /* 和網站相同：卡片比純黑背景亮一點 */
+    --ink: #fff; --ink-2: rgba(235, 235, 245, .72); --ink-3: rgba(235, 235, 245, .6);
     --line: rgba(84, 84, 88, .6); --accent: #ff8f73; --accent-ink: #1b0f0b;
     --ok: #30d158; --warn: #ffb340; --err: #ff6961; --tint: rgba(255, 143, 115, .16);
     color-scheme: dark;
@@ -68,7 +68,6 @@ label.check.inline { font-weight: 400; font-size: 13px; }
 }
 textarea.input { resize: vertical; line-height: 1.7; }
 .input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-.input.bad { border-color: var(--err); }
 .hint { margin: 4px 0 10px; font-size: 13px; color: var(--ink-3); }
 
 .btn {
@@ -101,8 +100,6 @@ textarea.input { resize: vertical; line-height: 1.7; }
 .note-row { padding: 4px 0; }
 .note-row textarea { min-height: 38px; }
 .note-status { display: flex; align-items: center; gap: 4px; padding-top: 8px; font-size: 12px; }
-.note-status .tag { padding: 1px 8px; border-radius: 999px; background: var(--fill); }
-.tag.ok { color: var(--ok); } .tag.warn { color: var(--warn); } .tag.err { color: var(--err); }
 @media (max-width: 800px) { .notes-head { display: none; } .note-row { grid-template-columns: 1fr; border-top: 1px dashed var(--line); padding: 8px 0; } }
 
 /* 底部操作列 */
@@ -114,7 +111,13 @@ textarea.input { resize: vertical; line-height: 1.7; }
 .dock-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .report { flex: 1; max-height: 30vh; overflow-y: auto; font-size: 13px; }
 .report ul { margin: 0; padding-left: 18px; }
-.report .err { color: var(--err); } .report .warn { color: var(--warn); } .report .ok { color: var(--ok); }
+.report .ok { white-space: pre-line; }   /* 儲存結果有好幾行（備份位置、簡體版的結果） */
+
+/* 檢查結果的顏色：註釋狀態的標籤、底部的檢查報告、使用說明裡的範例共用 */
+.tag { padding: 1px 8px; border-radius: 999px; background: var(--fill); font-size: 12px; }
+:is(.tag, .report div, .report ul).ok { color: var(--ok); }
+:is(.tag, .report div, .report ul).warn, .tag.hint { color: var(--warn); }   /* hint：只在編輯器顯示的小提示 */
+:is(.tag, .report div, .report ul).err { color: var(--err); }
 
 dialog { border: 0; border-radius: 18px; padding: 0; width: min(860px, calc(100vw - 32px)); background: var(--card); color: var(--ink); }
 dialog::backdrop { background: rgba(0, 0, 0, .35); }
@@ -139,9 +142,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .35); }
   opacity: 0; visibility: hidden; transition: opacity .12s;
 }
 [data-tip]:hover::after, [data-tip]:focus-visible::after { opacity: 1; visibility: visible; transition-delay: .15s; }
-[data-tip-pos="below"]::after { top: calc(100% + 6px); bottom: auto; }
-[data-tip-pos="below-left"]::after { top: calc(100% + 6px); bottom: auto; left: auto; right: 0; transform: none; }
-[data-tip-pos="left"]::after, [data-tip-pos="above-left"]::after { left: auto; right: 0; transform: none; }
+/* 位置：預設在上方置中；below 在下方（頂部列的按鈕）；left 靠右對齊往左展開（畫面右側的按鈕，不會超出畫面） */
+[data-tip-pos^="below"]::after { top: calc(100% + 6px); bottom: auto; }
+[data-tip-pos$="left"]::after { left: auto; right: 0; transform: none; }
 .tag[data-tip] { cursor: help; }
 
 /* ---------- 使用說明 ---------- */
@@ -156,5 +159,4 @@ dialog.help { width: min(760px, calc(100vw - 32px)); }
 .help-body p { margin: 4px 0; }
 .help-body .note { margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: var(--fill); color: var(--ink-2); }
 .help-body code { padding: 1px 5px; border-radius: 5px; background: var(--fill); font-size: 13px; }
-.help-body .tag { padding: 1px 8px; border-radius: 999px; background: var(--fill); font-size: 12px; }
 @media (max-width: 640px) { .help-body dl { grid-template-columns: 1fr; } .help-body dt { white-space: normal; } }

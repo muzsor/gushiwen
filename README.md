@@ -5,12 +5,12 @@
 <h1 align="center">📜 中國古詩文</h1>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.4.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="#-安裝到-iphone"><img src="https://img.shields.io/badge/PWA-ready-success.svg" alt="PWA"></a>
 </p>
 
-<p align="center">免費、無廣告、可離線的古詩文閱讀器，附語譯、註釋、賞析、作者介紹、創作背景、版本與參考資料，可切換正體／简体。<br>純 HTML / CSS / JavaScript，零依賴、零建置、零追蹤。<br>加入 iPhone 主畫面後，沒有網路也能讀。</p>
+<p align="center">免費、無廣告、可離線的古詩文閱讀器，附語譯、註釋、賞析、作者介紹、創作背景、版本與參考資料，可切換繁體／简体。<br>純 HTML / CSS / JavaScript，零依賴、零建置、零追蹤。<br>加入 iPhone 主畫面後，沒有網路也能讀。</p>
 
 > 🔗 **線上版**：https://muzsor.github.io/gushiwen/
 >
@@ -213,11 +213,12 @@
 - 📖 原文下附語譯：每句原文下方直接顯示語譯（散文也逐句對照），字詞仍可點開看註釋
 - 🈯 語譯開關：右下角展開後的「譯」按鈕可隨時顯示或隱藏語譯，選擇會記住；展開或收起也會記住
 - 📜 版本與參考資料：說明原文依據的版本、列出各版本的不同寫法，並附上每篇依據的文獻
-- 🔤 正體／简体切換：簡體版的讀音以拼音標示；註釋中說明版本差異的寫法保留正體，才看得出各版本的不同
+- 🔤 繁體／简体切換：簡體版的讀音以拼音標示；註釋中說明版本差異的寫法保留繁體，才看得出各版本的不同；切換時不重新載入，停在原來讀到的地方
 - ❓ 使用說明：設定面板中的「使用說明」逐一解釋每個按鈕；電腦上滑鼠移到按鈕上也會出現說明
 - 🌗 淺色／深色模式跟隨系統自動切換
 - 🫧 Liquid Glass 風格：純色背景，浮動按鈕與面板使用玻璃材質，捲動不卡頓
 - 🎞️ 動畫：換頁左右滑動、提示訊息從頂部膠囊彈出、面板開關都有動畫；手機開了「減少動態效果」時自動減到最少
+- 👆 註釋與使用說明的面板可以拖拉：往下拉關閉，往上拉會彈回原位，和 iPhone 的操作一致
 - 💾 閱讀設定、書籤與已讀紀錄記在本機，下次開啟沿用；設定面板可清除紀錄
 - 📱 PWA 離線快取，第一次開啟後不連網也能讀；有新版本時提示更新
 
@@ -248,6 +249,7 @@
 | `public/data/poems.json` | 所有作品與作者資料 |
 | `public/data/poems.hans.json` | 簡體版作品資料（由 `scripts/make_hans.py` 自動產生，不要手動修改） |
 | `public/js/hans-ui.js` | 簡體模式的介面文字對照表（自動產生，不要手動修改） |
+| `public/js/terms.js` | 目錄排序用的朝代、體裁清單（由 `make_hans.py` 依 `scripts/poemdata.py` 自動產生，不要手動修改） |
 | `public/sw.js` | Service Worker 離線快取 |
 | `public/manifest.json` | PWA 設定 |
 | `public/icons/` | App 圖示：iPhone 用 180、其他系統用 192／512（已裁圓角）、Android 自適應圖示用 maskable 512 |
@@ -256,7 +258,8 @@
 | `scripts/make_icon.py` | 圖示產生腳本 |
 | `scripts/add_poem.py` | 用純文字稿件新增、修改或匯出作品 |
 | `scripts/validate_poems.py` | 檢查作品資料的格式與內容 |
-| `scripts/make_hans.py` | 產生簡體版資料（正體轉簡體、注音轉拼音） |
+| `scripts/make_hans.py` | 產生簡體版資料（繁體轉簡體、注音轉拼音），以及 `hans-ui.js`、`terms.js` |
+| `scripts/poemdata.py` | 上面幾個工具共用的資料讀寫、備份、欄位整理與朝代／體裁清單（不單獨執行）；新增朝代或體裁只要改這裡，再執行 `make_hans.py` |
 | `templates/作品稿件範本.txt` | 新增作品用的稿件範本 |
 | `.github/workflows/deploy.yml` | 推送到 `main` 時自動部署 `public/` 到 GitHub Pages |
 
@@ -297,7 +300,7 @@ python -I scripts/editor.py
 - **右邊**：表單，依序是基本資料、作者、小序、原文與語譯、註釋、創作背景、版本、賞析、參考資料。
   - 原文與語譯：每一列是一句原文、一句語譯，每張卡片是一段（詩詞為一章或一片）。詩詞在原文欄按 Enter 可以分行。
   - 「快速貼上整篇」：貼上整篇原文和整篇語譯，會依句號、問號、驚嘆號自動切句配對，再到表格裡微調。
-  - 註釋：每一則旁邊即時顯示「找到」「只在題目」「找不到」。
+  - 註釋：每一則旁邊即時顯示「找到」「只在題目」「找不到」「未填解釋」等狀態，判斷規則和「檢查」、`validate_poems.py` 相同。
 - **下方**：
   - 「檢查」：列出錯誤與提醒。
   - 「儲存」：沒有錯誤才會寫入，寫入前把原資料備份到 `.backup/`。
@@ -376,7 +379,7 @@ python -I scripts/add_poem.py add 陋室銘.txt --replace
 
 稿件的寫法：
 - 幾行原文共用一句語譯時，把那幾行原文連續寫，最後再寫「譯：」。
-- 詩詞的連續幾行會保留分行，例如律詩一聯寫成兩行；散文的連續幾行會接成同一句。
+- 詩詞的連續幾行會保留分行，例如律詩一聯寫成兩行；散文的連續幾行會接成同一句。所以散文的句子裡如果有換行（例如〈滕王閣序〉序末的詩），稿件保留不了，這類作品請用網頁編輯器修改。
 - 空一行代表換段：散文的自然段，或詩詞的換章、換片。
 - 註釋一行一則，寫成「詞：解釋」。同一個詞出現多次時，寫成「詞｜所在的原文片段：解釋」。
 - 【版本】與【參考資料】可以省略。【版本】可以分段；【參考資料】一行一筆。
@@ -453,13 +456,13 @@ python -I scripts/add_poem.py add 陋室銘.txt --replace
 
 日常流程：在電腦上用編輯器新增或修改作品 → 更新版本號 → 推上 GitHub → 自動部署。
 
-**簡體版**：網頁編輯器與 `add_poem.py` 儲存時會自動重新產生 `public/data/poems.hans.json`。直接編輯 JSON，或修改了 `public/index.html`、`public/js/app.js` 的介面文字之後，要自己執行一次（需要先安裝 OpenCC：`pip install opencc-python-reimplemented`）：
+**簡體版**：網頁編輯器與 `add_poem.py` 儲存時會自動重新產生 `public/data/poems.hans.json`。直接編輯 JSON、修改了 `public/index.html`、`public/js/app.js` 的介面文字，或修改了 `scripts/poemdata.py` 的朝代、體裁清單之後，要自己執行一次（需要先安裝 OpenCC：`pip install opencc-python-reimplemented`）：
 
 ```bash
 python -I scripts/make_hans.py
 ```
 
-產生的兩個檔案（`public/data/poems.hans.json`、`public/js/hans-ui.js`）要一起提交，網站部署時不會自動產生。
+產生的三個檔案（`public/data/poems.hans.json`、`public/js/hans-ui.js`、`public/js/terms.js`）要一起提交，網站部署時不會自動產生。
 
 </details>
 
