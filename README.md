@@ -5,7 +5,7 @@
 <h1 align="center">📜 中國古詩文</h1>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.4.0-blue.svg" alt="Version"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.5.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="#-安裝到-iphone"><img src="https://img.shields.io/badge/PWA-ready-success.svg" alt="PWA"></a>
 </p>
@@ -205,7 +205,7 @@
 ## ✨ 功能
 
 - 👆 點一下原文中有底線的字詞，從下方浮出註釋
-- 🔍 搜尋詩題、作者、朝代、體裁、主題或詩句
+- 🔍 搜尋詩題、作者、朝代、體裁、出處、主題或詩句
 - 🗂️ 依朝代、體裁、作者／出處、閱讀紀錄（書籤、已讀、未讀）篩選，可以同時套用；選項旁標出符合的篇數
 - 🔖 書籤與已讀：閱讀頁右下角的閱讀工具按鈕「⋯」展開書籤、已讀、語譯三個按鈕；目錄卡片上標出記號，最下方顯示已讀篇數
 - 📄 目錄每頁 10 篇，以頁碼切換
@@ -450,13 +450,13 @@ python -I scripts/add_poem.py add 陋室銘.txt --replace
 <details>
 <summary>🔢 發布新版本</summary>
 
-1. 改 `public/sw.js` 開頭的 `VERSION`（例如從 `gushiwen-1.3.0` 改成 `gushiwen-1.4.0`），已安裝的使用者才會下載新內容
+1. 改 `public/sw.js` 開頭的 `VERSION`（例如從 `gushiwen-1.4.0` 改成 `gushiwen-1.5.0`），已安裝的使用者才會下載新內容
 2. 在 [CHANGELOG.md](CHANGELOG.md) 記錄變更，版本號遵循[語意化版本](https://semver.org/lang/zh-TW/)
 3. 推上 `main` 後自動部署，已安裝的使用者下次連網開啟會看到「內容已更新」
 
 日常流程：在電腦上用編輯器新增或修改作品 → 更新版本號 → 推上 GitHub → 自動部署。
 
-**簡體版**：網頁編輯器與 `add_poem.py` 儲存時會自動重新產生 `public/data/poems.hans.json`。直接編輯 JSON、修改了 `public/index.html`、`public/js/app.js` 的介面文字，或修改了 `scripts/poemdata.py` 的朝代、體裁清單之後，要自己執行一次（需要先安裝 OpenCC：`pip install opencc-python-reimplemented`）：
+**簡體版**：網頁編輯器（儲存、刪除作品、調整順序）與 `add_poem.py` 寫入資料時會自動重新產生 `public/data/poems.hans.json`。直接編輯 JSON、修改了 `public/index.html`、`public/js/app.js` 的介面文字，或修改了 `scripts/poemdata.py` 的朝代、體裁清單之後，要自己執行一次（需要先安裝 OpenCC：`pip install opencc-python-reimplemented`）：
 
 ```bash
 python -I scripts/make_hans.py
